@@ -2255,7 +2255,19 @@ def service_action(name, action):
         ("xray",    "restart"): "systemctl restart xray",
         ("xray",    "stop"):    "systemctl stop xray",
         ("xray",    "start"):   "systemctl start xray",
-        ("proxy",   "restart"): "pkill -f '[p]roxy.py'; screen -dmS ws80 python3 /etc/painel/proxy.py 80; screen -dmS ws8080 python3 /etc/painel/proxy.py 8080",
+        # Item: BUG CORRIGIDO — start/restart aqui viravam UMA linha de
+        # comando só ("pkill ...; screen -S ... quit; sleep; screen -dmS
+        # ... limit.sh"). Como a MESMA linha de comando termina com
+        # "bash /etc/painel/limit.sh" (texto puro, sem o truque [l]),
+        # o "pkill -f '[l]imit.sh'" do INÍCIO da linha acabava batendo
+        # nessa mesma linha (por causa do "limit.sh" que aparece mais
+        # adiante nela) e matava o próprio shell no meio — antes dele
+        # chegar no "screen -dmS" final. Resultado: o limiter nunca
+        # subia pelo painel, só na mão (comando avulso, sem esse
+        # conflito). Fix: virou uma LISTA — cada comando roda como uma
+        # invocação de shell separada, então o comando de limpeza nunca
+        # "enxerga" o comando de start na mesma linha.
+        ("proxy",   "restart"): ["pkill -f '[p]roxy.py'", "screen -dmS ws80 python3 /etc/painel/proxy.py 80; screen -dmS ws8080 python3 /etc/painel/proxy.py 8080"],
         ("proxy",   "stop"):    "pkill -f '[p]roxy.py'",
         ("proxy",   "start"):   "screen -dmS ws80 python3 /etc/painel/proxy.py 80; screen -dmS ws8080 python3 /etc/painel/proxy.py 8080",
         # "stop" do limiter precisa ser mais agressivo que um pkill simples:
@@ -2269,9 +2281,9 @@ def service_action(name, action):
         # várias vezes), matando o shell no meio e abortando os passos
         # seguintes (o screen quit/restart às vezes nem rodava). Por isso
         # o "[l]imit.sh" também aqui, não só no status.
-        ("limiter", "start"):   "pkill -f '[l]imit.sh' 2>/dev/null; screen -S limitador -X quit 2>/dev/null; sleep 0.3; screen -dmS limitador bash /etc/painel/limit.sh",
+        ("limiter", "start"):   ["pkill -f '[l]imit.sh' 2>/dev/null; screen -S limitador -X quit 2>/dev/null; sleep 0.3", "screen -dmS limitador bash /etc/painel/limit.sh"],
         ("limiter", "stop"):    "pkill -f '[l]imit.sh' 2>/dev/null; screen -S limitador -X quit 2>/dev/null; sleep 0.3; pkill -9 -f '[l]imit.sh' 2>/dev/null",
-        ("limiter", "restart"): "pkill -9 -f '[l]imit.sh' 2>/dev/null; screen -S limitador -X quit 2>/dev/null; sleep 0.3; screen -dmS limitador bash /etc/painel/limit.sh",
+        ("limiter", "restart"): ["pkill -9 -f '[l]imit.sh' 2>/dev/null; screen -S limitador -X quit 2>/dev/null; sleep 0.3", "screen -dmS limitador bash /etc/painel/limit.sh"],
         ("badvpn",  "restart"): "systemctl restart badvpn",
         ("badvpn",  "stop"):    "systemctl stop badvpn",
         ("badvpn",  "start"):   "systemctl start badvpn",
@@ -2279,7 +2291,11 @@ def service_action(name, action):
     cmd = cmds.get((name, action))
     if not cmd:
         return jsonify({"error": "ação inválida"}), 400
-    _, rc = run_cmd(cmd)
+    # cmd pode ser uma string (1 invocação) ou uma lista (várias
+    # invocações separadas, sem risco de uma pisar na outra — ver
+    # comentário acima sobre o self-match do pkill).
+    for c in (cmd if isinstance(cmd, list) else [cmd]):
+        _, rc = run_cmd(c)
 
     # Confere o resultado de VERDADE antes de responder, em vez de assumir
     # que o comando funcionou depois de uma única espera fixa — um serviço
