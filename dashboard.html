@@ -181,12 +181,12 @@
             <div class="service-item">
               <span class="svc-dot" id="svc-xray"></span>
               <span>Xray</span>
-              <button class="svc-btn" onclick="svcAction('xray','restart')">↺</button>
+              <button class="svc-btn" onclick="svcAction('xray','restart',this)">↺</button>
             </div>
             <div class="service-item">
               <span class="svc-dot" id="svc-proxy"></span>
               <span>WebSocket</span>
-              <button class="svc-btn" onclick="svcAction('proxy','restart')">↺</button>
+              <button class="svc-btn" onclick="svcAction('proxy','restart',this)">↺</button>
             </div>
             <div class="service-item">
               <span class="svc-dot" id="svc-limiter"></span>
@@ -205,7 +205,7 @@
             <div class="service-item">
               <span class="svc-dot" id="svc-badvpn"></span>
               <span>BadVPN UDPGW</span>
-              <button class="svc-btn" onclick="svcAction('badvpn','restart')">↺</button>
+              <button class="svc-btn" onclick="svcAction('badvpn','restart',this)">↺</button>
             </div>
           </div>
         </div>
@@ -413,8 +413,12 @@ async function setupSlowDNS() {
   loadDashboard();
 }
 
-async function svcAction(name, action) {
+async function svcAction(name, action, btnEl) {
+  const btn = btnEl || event?.target;
+  const originalText = btn ? btn.textContent : null;
+  if (btn) { btn.disabled = true; btn.textContent = "⏳"; }
   const r = await api(`/services/${name}/${action}`, "POST");
+  if (btn) { btn.disabled = false; if (originalText !== null) btn.textContent = originalText; }
   if (r) {
     toast(`${name} ${action} executado — agora está ${r.running ? "rodando" : "parado"}`);
     loadDashboard();
@@ -423,7 +427,8 @@ async function svcAction(name, action) {
 
 async function toggleLimiter() {
   const action = _limiterOn ? "stop" : "start";
-  await svcAction("limiter", action);
+  const btn = document.getElementById("btn-limiter");
+  await svcAction("limiter", action, btn);
 }
 
 // Relógio
