@@ -52,6 +52,13 @@ LOG_LIMIT     = "/var/log/netsimon_limit.log"
 XRAY_LOG      = "/var/log/xray/access.log"
 XRAY_API      = "127.0.0.1:2000"
 
+# ── Fotos de usuário (armazenamento local) — portado do NetSimon 7.0,
+# funcionalidade perdida na reescrita pra 8.0/9.0. Servido como estático
+# pelo nginx direto de /var/www/html (mesma pasta do frontend).
+FOTOS_DIR = "/var/www/html/fotos"
+FOTOS_DB  = "/etc/painel/fotos.db"
+MAX_PHOTO_SIZE = 2 * 1024 * 1024  # 2 MB
+
 # ── Device Check (bloqueio por dispositivo, 100% local) ──────────
 DEVICE_DB       = "/etc/painel/netsimon_devices.db"
 DEVICE_LOG      = "/var/log/netsimon_device.log"
@@ -625,6 +632,32 @@ def all_owned_logins(cfg, username):
     for child in all_descendant_resellers(cfg, username):
         logins |= set(cfg["resellers"].get(child, {}).get("users", []))
     return logins
+
+# ── Fotos de usuário — portado do NetSimon 7.0 ────────────────────
+def read_photos():
+    photos = {}
+    if os.path.exists(FOTOS_DB):
+        with open(FOTOS_DB) as f:
+            for line in f:
+                parts = line.strip().split("|", 1)
+                if len(parts) == 2 and parts[0]:
+                    photos[parts[0]] = parts[1]
+    return photos
+
+def save_photos(photos):
+    os.makedirs(os.path.dirname(FOTOS_DB), exist_ok=True)
+    with open(FOTOS_DB, "w") as f:
+        for login, fn in photos.items():
+            f.write(f"{login}|{fn}\n")
+
+def detect_image_ext(data: bytes):
+    if data[:3] == b"\xff\xd8\xff":
+        return "jpg"
+    if data[:8] == b"\x89PNG\r\n\x1a\n":
+        return "png"
+    if data[:4] == b"RIFF" and data[8:12] == b"WEBP":
+        return "webp"
+    return None
 
 def quota_usage(cfg, username):
     """(usados, cota) — usados soma o 'limite' (quantidade de acessos/
@@ -1323,8 +1356,10 @@ def list_users():
         users = [u for u in users if u["login"] in owned]
 
     result = []
+    photos = read_photos()
     for u in users:
         owner = find_owner_of_login(cfg, u["login"])
+        foto = photos.get(u["login"])
         result.append({
             "login":   u["login"],
             "uuid":    u["uuid"],
@@ -1335,6 +1370,7 @@ def list_users():
             "online":  u["login"] in online,
             "online_seconds": online_duration_seconds(u["login"], online_since) if u["login"] in online else 0,
             "criado_por": owner if owner else cfg["admin"]["username"],
+            "foto_url": f"/fotos/{foto}" if foto else None,
             "blocked": False  # expandido abaixo
         })
 
@@ -1443,6 +1479,67 @@ def delete_user(username):
     if not s.get("via_sync"):
         propagate_to_servers("DELETE", f"/api/users/{username}")
 
+    return jsonify({"ok": True})
+
+@app.route("/api/users/<username>/photo", methods=["POST"])
+@auth_required()
+def upload_user_photo(username):
+    s = request.ns_session
+    if s["role"] == "reseller":
+        cfg = load_config()
+        if username not in all_owned_logins(cfg, s["user"]):
+            return jsonify({"error": "forbidden"}), 403
+
+    if "foto" not in request.files:
+        return jsonify({"error": "Nenhum arquivo enviado"}), 400
+
+    data = request.files["foto"].read()
+    if not data:
+        return jsonify({"error": "Arquivo vazio"}), 400
+    if len(data) > MAX_PHOTO_SIZE:
+        return jsonify({"error": "Imagem muito grande (máximo 2 MB)"}), 400
+
+    ext = detect_image_ext(data)
+    if not ext:
+        return jsonify({"error": "Formato inválido. Use JPG, PNG ou WEBP"}), 400
+
+    os.makedirs(FOTOS_DIR, exist_ok=True)
+    safe_login = re.sub(r'[^a-zA-Z0-9_-]', '_', username).lower()
+
+    for other_ext in ("jpg", "png", "webp"):
+        if other_ext != ext:
+            old_path = os.path.join(FOTOS_DIR, f"{safe_login}.{other_ext}")
+            if os.path.exists(old_path):
+                os.remove(old_path)
+
+    filename = f"{safe_login}.{ext}"
+    path = os.path.join(FOTOS_DIR, filename)
+    with open(path, "wb") as f:
+        f.write(data)
+    os.chmod(path, 0o644)
+
+    photos = read_photos()
+    photos[username] = filename
+    save_photos(photos)
+
+    return jsonify({"ok": True, "foto_url": f"/fotos/{filename}"})
+
+@app.route("/api/users/<username>/photo", methods=["DELETE"])
+@auth_required()
+def delete_user_photo(username):
+    s = request.ns_session
+    if s["role"] == "reseller":
+        cfg = load_config()
+        if username not in all_owned_logins(cfg, s["user"]):
+            return jsonify({"error": "forbidden"}), 403
+
+    photos = read_photos()
+    filename = photos.pop(username, None)
+    if filename:
+        path = os.path.join(FOTOS_DIR, filename)
+        if os.path.exists(path):
+            os.remove(path)
+        save_photos(photos)
     return jsonify({"ok": True})
 
 @app.route("/api/users/expired", methods=["DELETE"])
@@ -5142,8 +5239,11 @@ def _device_check_core(username, device_hash, phone, ip):
                     (now, ip, uuid_val, device_hash))
 
     conn.commit(); conn.close()
+    photos = read_photos()
+    foto = photos.get(user["login"])
     result = {"status": "allowed", "message": "Dispositivo autorizado.",
-              "limit": limite, "devices": count}
+              "limit": limite, "devices": count,
+              "foto_url": build_public_url(f"/fotos/{foto}") if foto else ""}
     return result, 200
 
 def _build_api_keys_block():
@@ -5231,15 +5331,18 @@ def checkuser_list():
         scope_users = set(cfg["resellers"][matched_reseller].get("users", []))
 
     online = set(get_online_users())
+    photos = read_photos()
     result = []
     for u in read_users():
         if scope_users is not None and u["login"] not in scope_users:
             continue
+        foto = photos.get(u["login"])
         result.append({
             "login":            u["login"],
             "expira":           u["expira"],
             "limite":           int(u["limite"]) if str(u["limite"]).isdigit() else 1,
-            "count_connections": 1 if u["login"] in online else 0
+            "count_connections": 1 if u["login"] in online else 0,
+            "foto_url":         build_public_url(f"/fotos/{foto}") if foto else ""
         })
     return jsonify(result)
 
