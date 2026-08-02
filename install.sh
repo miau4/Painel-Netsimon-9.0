@@ -326,6 +326,10 @@ printf "${W}  -> %-25s ${NC}" "img/icon-home.png"
 wget -q -O "$WEBROOT/img/icon-home.png" "$REPO/icon-home.png?$(date +%s)"
 [ -s "$WEBROOT/img/icon-home.png" ] && echo -e "${G}[OK]${NC}" || echo -e "${R}[FALHA]${NC}"
 
+printf "${W}  -> %-25s ${NC}" "img/icon-whatsapp.png"
+wget -q -O "$WEBROOT/img/icon-whatsapp.png" "$REPO/icon-whatsapp.png?$(date +%s)"
+[ -s "$WEBROOT/img/icon-whatsapp.png" ] && echo -e "${G}[OK]${NC}" || echo -e "${R}[FALHA]${NC}"
+
 printf "${W}  -> %-25s ${NC}" "img/painel_bg.mp4"
 wget -q -O "$WEBROOT/img/painel_bg.mp4" "$REPO/painel_bg.mp4?$(date +%s)"
 [ -s "$WEBROOT/img/painel_bg.mp4" ] && echo -e "${G}[OK]${NC}" || echo -e "${R}[FALHA]${NC}"
