@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<script>(function(){try{if(localStorage.getItem("ns_theme")==="light")document.documentElement.setAttribute("data-theme","light");}catch(e){}})();</script>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NetSimon 9.0 — WebSocket</title>
+<link rel="stylesheet" href="/css/painel.css?v=19">
+</head>
+<body>
+<div class="layout">
+  <aside class="sidebar" id="sidebar">
+    <a href="/dashboard.html" class="sidebar-logo" title="Início">
+      <div class="logo-icon"><img src="/img/logo.png" alt="NetSimon"></div>
+    </a>
+
+    <nav class="sidebar-nav">
+      <a href="/dashboard.html" class="nav-item active" data-page="dashboard">
+        <span class="nav-icon nav-icon-img"><img src="/img/icon-home.png" alt="Início"></span><span>Início</span>
+      </a>
+      <a href="/usuarios.html" class="nav-item" data-page="usuarios">
+        <span class="nav-icon">👤</span><span>Usuários</span>
+      </a>
+      <a href="/todos-usuarios.html" class="nav-item" data-page="todos-usuarios">
+        <span class="nav-icon">🗂️</span><span>Todos os Usuários</span>
+      </a>
+      <a href="/dispositivos.html" class="nav-item" data-page="dispositivos">
+        <span class="nav-icon">📵</span><span>Dispositivos</span>
+      </a>
+      <a href="/xray.html" class="nav-item admin-only" data-page="xray">
+        <span class="nav-icon">🛰️</span><span>Xray</span>
+      </a>
+      <a href="/revendedores.html" class="nav-item reseller-manage-only" data-page="revendedores">
+        <span class="nav-icon">🤝</span><span>Revendedores</span>
+      </a>
+      <a href="/servidores.html" class="nav-item admin-only" data-page="servidores">
+        <span class="nav-icon">🖧</span><span>Servidores</span>
+      </a>
+      <a href="/diagnostico.html" class="nav-item" data-page="diagnostico">
+        <span class="nav-icon">🧠</span><span>Manutenção</span>
+      </a>
+      <a href="/whatsapp.html" class="nav-item" data-page="whatsapp">
+        <span class="nav-icon nav-icon-img"><img src="/img/icon-whatsapp.png" alt="WhatsApp"></span><span>WhatsApp</span>
+      </a>
+      <a href="/campanhas.html" class="nav-item" data-page="campanhas">
+        <span class="nav-icon">📣</span><span>Campanhas</span>
+      </a>
+      <a href="/app.html" class="nav-item" data-page="app">
+        <span class="nav-icon">📱</span><span>Aplicativo</span>
+      </a>
+      <a href="/backup.html" class="nav-item admin-only" data-page="backup">
+        <span class="nav-icon">💾</span><span>Backup</span>
+      </a>
+      <a href="/bot.html" class="nav-item admin-only" data-page="bot">
+        <span class="nav-icon">🤖</span><span>Bot Telegram</span>
+      </a>
+      <a href="/logs.html" class="nav-item admin-only" data-page="logs">
+        <span class="nav-icon">📋</span><span>Logs</span>
+      </a>
+      <a href="#" class="nav-item admin-only" data-page="terminal" onclick="openTerminal(); return false;">
+        <span class="nav-icon">🖥️</span><span>Terminal</span>
+      </a>
+      <a href="/websocket-security.html" class="nav-item admin-only" data-page="wssecurity">
+        <span class="nav-icon">🔐</span><span>WS Security</span>
+      </a>
+      <a href="/ia.html" class="nav-item admin-only" data-page="ia">
+        <span class="nav-icon">✨</span><span>IA</span>
+      </a>
+      <a href="/configuracoes.html" class="nav-item admin-only" data-page="config">
+        <span class="nav-icon">⚙️</span><span>Configurações</span>
+      </a>
+    </nav>
+
+    <div class="sidebar-footer">
+      <div class="user-info">
+        <span class="user-avatar">👑</span>
+        <div>
+          <div class="user-name" id="sidebar-username">–</div>
+          <div class="user-role" id="sidebar-role">–</div>
+        </div>
+      </div>
+      <button class="btn-theme-toggle" id="btn-theme-toggle" title="Alternar tema" onclick="toggleTheme()">☀️</button>
+      <button class="btn-logout" id="btn-logout" title="Sair">⏻</button>
+    </div>
+  </aside>
+
+  <main class="main">
+    <header class="topbar">
+      <div class="topbar-left">
+        <button class="burger" id="burger">☰</button>
+        <h1 class="page-title">WebSocket Manager</h1>
+      </div>
+    </header>
+
+    <div class="content">
+      <div class="cards-grid" style="grid-template-columns:repeat(2,1fr)">
+        <div class="card-stat">
+          <div class="card-stat-icon" style="--c:#a855f7">🌐</div>
+          <div class="card-stat-info">
+            <div class="card-stat-val" id="ws-port80-val">–</div>
+            <div class="card-stat-label">Porta 80</div>
+          </div>
+        </div>
+        <div class="card-stat">
+          <div class="card-stat-icon" style="--c:#a855f7">🌐</div>
+          <div class="card-stat-info">
+            <div class="card-stat-val" id="ws-port8080-val">–</div>
+            <div class="card-stat-label">Porta 8080</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card-panel">
+        <div class="card-panel-header"><span>🔌 WebSocket Proxy (proxy.py)</span></div>
+        <div style="padding:18px; display:flex; flex-direction:column; gap:10px;">
+          <div style="display:flex; gap:10px; flex-wrap:wrap">
+            <button class="btn btn-primary btn-sm" onclick="wsAction('start', 80)">▶️ Iniciar Porta 80</button>
+            <button class="btn btn-primary btn-sm" onclick="wsAction('start', 8080)">▶️ Iniciar Porta 8080</button>
+          </div>
+          <div style="display:flex; gap:10px; flex-wrap:wrap">
+            <button class="btn btn-danger btn-sm" onclick="wsAction('stop', 80)">⏹ Parar Porta 80</button>
+            <button class="btn btn-danger btn-sm" onclick="wsAction('stop', 8080)">⏹ Parar Porta 8080</button>
+          </div>
+          <button class="btn btn-ghost btn-sm" onclick="wsRestartAll()">↺ Reiniciar Ambos os Proxies (80 + 8080)</button>
+        </div>
+      </div>
+
+      <div class="card-panel">
+        <div class="card-panel-header">
+          <span>🔐 WebSocket Security (SSHPlus)</span>
+          <a href="/websocket-security.html" class="btn btn-ghost btn-sm">Gerenciar →</a>
+        </div>
+        <div style="padding:18px" class="text-sm text-muted">
+          Camada extra de ofuscação para SSH, independente do proxy WebSocket acima.
+          Abra o gerenciador dedicado para instalar, configurar e iniciar/parar.
+        </div>
+      </div>
+
+      <div class="card-panel">
+        <div class="card-panel-header"><span>📊 Relatório de Portas</span></div>
+        <div style="padding:18px">
+          <button class="btn btn-ghost btn-sm" onclick="loadPortsReport()">↻ Atualizar Relatório</button>
+          <div id="ports-report" class="text-sm text-muted" style="margin-top:12px">–</div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<div class="toast" id="toast"></div>
+<script src="/js/painel.js"></script>
+<script>
+async function loadWsStatus() {
+  const data = await api("/websocket/status");
+  if (!data) return;
+  document.getElementById("ws-port80-val").innerHTML = data.port80
+    ? '<span class="badge badge-success">Ativa</span>' : '<span class="badge badge-danger">Inativa</span>';
+  document.getElementById("ws-port8080-val").innerHTML = data.port8080
+    ? '<span class="badge badge-success">Ativa</span>' : '<span class="badge badge-danger">Inativa</span>';
+}
+
+async function wsAction(action, port) {
+  const r = await api(`/websocket/${action}`, "POST", { port });
+  if (!r) return;
+  toast(`Porta ${port}: ${action === "start" ? "iniciada" : "encerrada"}`);
+  setTimeout(loadWsStatus, 1500);
+}
+
+async function wsRestartAll() {
+  const r = await api("/websocket/restart-all", "POST");
+  if (!r) return;
+  toast("Proxies reiniciados (80 + 8080)");
+  setTimeout(loadWsStatus, 1500);
+}
+
+async function loadPortsReport() {
+  const dash = await api("/dashboard");
+  if (!dash) return;
+  const ports = dash.ports || [];
+  document.getElementById("ports-report").innerHTML = ports.length
+    ? `Portas em LISTEN no servidor: <span class="text-mono">${ports.join(", ")}</span>`
+    : "Nenhuma porta em LISTEN detectada.";
+}
+
+initPage();
+loadWsStatus();
+loadPortsReport();
+setInterval(loadWsStatus, 10000);
+</script>
+</body>
+</html>

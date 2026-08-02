@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<script>(function(){try{if(localStorage.getItem("ns_theme")==="light")document.documentElement.setAttribute("data-theme","light");}catch(e){}})();</script>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NetSimon 9.0 — Dispositivos</title>
+<link rel="stylesheet" href="/css/painel.css?v=19">
+</head>
+<body>
+<div class="layout">
+  <aside class="sidebar" id="sidebar">
+    <a href="/dashboard.html" class="sidebar-logo" title="Início">
+      <div class="logo-icon"><img src="/img/logo.png" alt="NetSimon"></div>
+    </a>
+
+    <nav class="sidebar-nav">
+      <a href="/dashboard.html" class="nav-item active" data-page="dashboard">
+        <span class="nav-icon nav-icon-img"><img src="/img/icon-home.png" alt="Início"></span><span>Início</span>
+      </a>
+      <a href="/usuarios.html" class="nav-item" data-page="usuarios">
+        <span class="nav-icon">👤</span><span>Usuários</span>
+      </a>
+      <a href="/todos-usuarios.html" class="nav-item" data-page="todos-usuarios">
+        <span class="nav-icon">🗂️</span><span>Todos os Usuários</span>
+      </a>
+      <a href="/dispositivos.html" class="nav-item" data-page="dispositivos">
+        <span class="nav-icon">📵</span><span>Dispositivos</span>
+      </a>
+      <a href="/xray.html" class="nav-item admin-only" data-page="xray">
+        <span class="nav-icon">🛰️</span><span>Xray</span>
+      </a>
+      <a href="/revendedores.html" class="nav-item reseller-manage-only" data-page="revendedores">
+        <span class="nav-icon">🤝</span><span>Revendedores</span>
+      </a>
+      <a href="/servidores.html" class="nav-item admin-only" data-page="servidores">
+        <span class="nav-icon">🖧</span><span>Servidores</span>
+      </a>
+      <a href="/diagnostico.html" class="nav-item" data-page="diagnostico">
+        <span class="nav-icon">🧠</span><span>Manutenção</span>
+      </a>
+      <a href="/whatsapp.html" class="nav-item" data-page="whatsapp">
+        <span class="nav-icon nav-icon-img"><img src="/img/icon-whatsapp.png" alt="WhatsApp"></span><span>WhatsApp</span>
+      </a>
+      <a href="/campanhas.html" class="nav-item" data-page="campanhas">
+        <span class="nav-icon">📣</span><span>Campanhas</span>
+      </a>
+      <a href="/app.html" class="nav-item" data-page="app">
+        <span class="nav-icon">📱</span><span>Aplicativo</span>
+      </a>
+      <a href="/backup.html" class="nav-item admin-only" data-page="backup">
+        <span class="nav-icon">💾</span><span>Backup</span>
+      </a>
+      <a href="/bot.html" class="nav-item admin-only" data-page="bot">
+        <span class="nav-icon">🤖</span><span>Bot Telegram</span>
+      </a>
+      <a href="/logs.html" class="nav-item admin-only" data-page="logs">
+        <span class="nav-icon">📋</span><span>Logs</span>
+      </a>
+      <a href="#" class="nav-item admin-only" data-page="terminal" onclick="openTerminal(); return false;">
+        <span class="nav-icon">🖥️</span><span>Terminal</span>
+      </a>
+      <a href="/websocket-security.html" class="nav-item admin-only" data-page="wssecurity">
+        <span class="nav-icon">🔐</span><span>WS Security</span>
+      </a>
+      <a href="/ia.html" class="nav-item admin-only" data-page="ia">
+        <span class="nav-icon">✨</span><span>IA</span>
+      </a>
+      <a href="/configuracoes.html" class="nav-item admin-only" data-page="config">
+        <span class="nav-icon">⚙️</span><span>Configurações</span>
+      </a>
+    </nav>
+
+    <div class="sidebar-footer">
+      <div class="user-info">
+        <span class="user-avatar">👑</span>
+        <div>
+          <div class="user-name" id="sidebar-username">–</div>
+          <div class="user-role" id="sidebar-role">–</div>
+        </div>
+      </div>
+      <button class="btn-theme-toggle" id="btn-theme-toggle" title="Alternar tema" onclick="toggleTheme()">☀️</button>
+      <button class="btn-logout" id="btn-logout" title="Sair">⏻</button>
+    </div>
+  </aside>
+
+  <main class="main">
+    <header class="topbar">
+      <div class="topbar-left">
+        <button class="burger" id="burger">☰</button>
+        <h1 class="page-title">Bloqueio por Dispositivo</h1>
+      </div>
+      <div class="topbar-right">
+        <button class="btn btn-ghost btn-sm" onclick="loadDevices()">↻ Atualizar</button>
+      </div>
+    </header>
+
+    <div class="content">
+      <div class="card-panel">
+        <div style="padding:14px 18px" class="text-sm text-muted">
+          Bloqueio por dispositivo 100% local — não depende mais de nenhum painel externo (Atlas/Dragon).
+          O app cliente envia o <span class="text-mono">device_hash</span> a cada conexão; se o usuário já tiver
+          atingido o limite de aparelhos, o acesso é recusado automaticamente.
+        </div>
+      </div>
+
+      <div class="card-panel admin-only" style="margin-top:16px">
+        <div class="card-panel-header">
+          <span>🎛️ Sistema de Limite de Dispositivos</span>
+          <span class="text-sm" id="limiter-status-badge" style="display:flex; align-items:center; gap:6px;">
+            <span class="svc-dot" id="limiter-master-dot"></span> <span id="limiter-master-text">–</span>
+          </span>
+        </div>
+        <div style="padding:18px; display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap">
+          <div class="text-sm text-muted" style="max-width:640px">
+            Liga/desliga o serviço inteiro que aplica os limites (<span class="text-mono">limit.sh</span>).
+            Se ele apresentar algum bug, desative aqui até resolver — os usuários continuam conectando
+            normalmente, só não terão o limite de dispositivos aplicado enquanto estiver desligado.
+          </div>
+          <button class="btn btn-primary" id="btn-limiter-master" onclick="toggleLimiterMaster()">–</button>
+        </div>
+      </div>
+
+      <div class="card-panel" style="margin-top:16px">
+        <div style="padding:12px 18px; display:flex; gap:10px; align-items:center;">
+          <input type="text" id="filter-device" placeholder="🔍 Buscar por usuário..." style="max-width:240px; background:var(--bg); border:1px solid var(--border); border-radius:8px; color:var(--text); font-size:13px; padding:7px 12px; outline:none;">
+          <span class="text-muted text-sm" id="device-count" style="margin-left:auto"></span>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Usuário</th>
+                <th>Device Hash</th>
+                <th>IP</th>
+                <th>Primeiro acesso</th>
+                <th>Último acesso</th>
+                <th>Ações</th>
+              </tr>
+
+            </thead>
+            <tbody id="devices-tbody">
+              <tr><td colspan="6" style="text-align:center;padding:32px;color:var(--muted)">Carregando…</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="card-panel admin-only" style="margin-top:16px">
+        <div class="card-panel-header"><span>🚫 Bloqueios do Limiter</span></div>
+        <div style="padding:18px">
+          <div id="blocked-list" style="display:flex; flex-direction:column; gap:8px; max-height:200px; overflow-y:auto; margin-bottom:14px;">
+            <span class="text-muted text-sm">Carregando…</span>
+          </div>
+          <button class="btn btn-danger btn-sm" onclick="clearBlocked()">🗑 Limpar Todos os Bloqueios</button>
+        </div>
+      </div>
+
+      <div class="card-panel admin-only" style="margin-top:16px">
+        <div class="card-panel-header"><span>🔑 Token de Integração (app cliente)</span></div>
+        <div style="padding:18px" class="form-grid">
+          <div class="text-sm text-muted">
+            O app cliente deve enviar este token no header <span class="text-mono">X-Device-Token</span>
+            ao chamar <span class="text-mono">POST /api/device/check</span>. Guarde-o com segurança.
+          </div>
+          <div style="display:flex; gap:8px; align-items:center">
+            <input type="text" id="device-token-display" readonly value="carregando…" style="font-family:monospace; font-size:12px; background:var(--bg); border:1px solid var(--border); border-radius:8px; color:var(--text); padding:8px 10px; flex:1">
+            <button class="btn btn-ghost btn-sm" onclick="copyDeviceToken()">📋 Copiar</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<div class="toast" id="toast"></div>
+<script src="/js/painel.js"></script>
+<script>
+let _devices = [];
+
+async function loadDevices() {
+  const data = await api("/device/list");
+  if (!data) return;
+  _devices = data;
+  renderDevices();
+}
+
+function renderDevices() {
+  const search = document.getElementById("filter-device").value.toLowerCase();
+  const list = _devices.filter(d => !search || d.login.toLowerCase().includes(search));
+  document.getElementById("device-count").textContent = `${list.length} dispositivo(s)`;
+
+  const tbody = document.getElementById("devices-tbody");
+  if (!list.length) {
+    tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;padding:32px;color:var(--muted)">Nenhum dispositivo registrado</td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = list.map(d => `
+    <tr>
+      <td><strong class="text-mono">${d.login}</strong></td>
+      <td class="text-mono text-sm" title="${d.device_hash}">${d.device_hash.substring(0,16)}…</td>
+      <td class="text-sm">${d.ip || "–"}</td>
+      <td class="text-sm text-muted">${fmtDate(d.first_seen)}</td>
+      <td class="text-sm text-muted">${fmtDate(d.last_seen)}</td>
+      <td><button class="btn btn-danger btn-sm" onclick="resetDevices('${d.login}')">🔓 Resetar</button></td>
+    </tr>
+  `).join("");
+}
+
+async function resetDevices(login) {
+  if (!confirm2(`Remover todos os dispositivos registrados de "${login}"? Ele poderá conectar de um novo aparelho (e será desbloqueado, se estiver bloqueado).`)) return;
+  const r = await api(`/device/reset/${login}`, "POST");
+  if (!r) return;
+  toast(`${r.removed} dispositivo(s) removido(s) de ${login}` + (r.desbloqueado ? " — e o usuário foi desbloqueado" : ""));
+  loadDevices();
+  loadBlockedList();
+}
+
+async function loadDeviceToken() {
+  // O token não é exposto por API por segurança — instrução de onde encontrá-lo
+  const el = document.getElementById("device-token-display");
+  if (el) el.value = "Definido em /etc/painel/device_check.token no servidor";
+}
+
+function copyDeviceToken() {
+  toast("Acesse o arquivo /etc/painel/device_check.token no servidor via SSH para copiar o valor real.");
+}
+
+async function loadBlockedList() {
+  if (getRole() !== "admin") return;
+  const el = document.getElementById("blocked-list");
+  const data = await api("/admin/blocked");
+  if (!data) return;
+  if (!data.length) {
+    el.innerHTML = `<span class="text-muted text-sm">Nenhum usuário bloqueado no momento. ✅</span>`;
+    return;
+  }
+  el.innerHTML = data.map(b => `
+    <div style="display:flex; justify-content:space-between; align-items:center; gap:10px; padding:8px 10px; background:var(--surface2); border-radius:8px; border:1px solid var(--border);">
+      <div>
+        <strong class="text-mono text-sm">${b.login}</strong>
+        <div class="text-muted" style="font-size:11px">${b.motivo || "-"} — ${b.data || ""}</div>
+      </div>
+      <button class="btn btn-ghost btn-sm" onclick="unblockFromDevices('${b.login}')">🔓 Desbloquear</button>
+    </div>
+  `).join("");
+}
+
+async function unblockFromDevices(login) {
+  const r = await api(`/users/${login}/unblock`, "POST");
+  if (!r) return;
+  toast(`${login} desbloqueado`);
+  loadBlockedList();
+}
+
+async function clearBlocked() {
+  if (!confirm2("Desbloquear TODOS os usuários da lista de bloqueios? O acesso de todos eles será restaurado.")) return;
+  const r = await api("/admin/blocked", "DELETE");
+  if (!r) return;
+  toast(`${r.desbloqueados || 0} usuário(s) desbloqueado(s)`);
+  loadBlockedList();
+}
+
+document.getElementById("filter-device").addEventListener("input", renderDevices);
+
+let _limiterMasterOn = false;
+
+async function loadLimiterMasterStatus() {
+  if (getRole() !== "admin") return;
+  const r = await api("/services/limiter/status");
+  if (!r) return;
+  _limiterMasterOn = r.running;
+  setLimiterMasterUI(r.running);
+}
+
+function setLimiterMasterUI(running) {
+  const dot = document.getElementById("limiter-master-dot");
+  const text = document.getElementById("limiter-master-text");
+  const btn = document.getElementById("btn-limiter-master");
+  if (dot) dot.className = "svc-dot " + (running ? "on" : "off");
+  if (text) text.textContent = running ? "Ativo" : "Desativado";
+  if (btn) {
+    btn.textContent = running ? "⏸ Desativar Limiter" : "▶ Ativar Limiter";
+    btn.className = "btn " + (running ? "btn-danger" : "btn-primary");
+  }
+}
+
+async function toggleLimiterMaster() {
+  const action = _limiterMasterOn ? "stop" : "start";
+  const btn = document.getElementById("btn-limiter-master");
+  if (btn) btn.disabled = true;
+  const r = await api(`/services/limiter/${action}`, "POST");
+  if (btn) btn.disabled = false;
+  if (!r) return;
+  _limiterMasterOn = r.running;
+  setLimiterMasterUI(r.running);
+  toast(`Sistema de limite de dispositivos ${r.running ? "ativado" : "desativado"}!`);
+}
+
+initPage();
+loadDevices();
+loadDeviceToken();
+loadBlockedList();
+loadLimiterMasterStatus();
+setInterval(loadDevices, 20000);
+setInterval(loadLimiterMasterStatus, 20000);
+</script>
+</body>
+</html>

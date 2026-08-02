@@ -1,0 +1,14 @@
+[Unit]
+Description=NetSimon 9.0 - WhatsApp Notification Microservice (Baileys)
+After=network.target painel-api.service
+
+[Service]
+Type=simple
+WorkingDirectory=/etc/painel
+ExecStart=/usr/bin/node /etc/painel/whatsapp_bot.js
+Restart=always
+RestartSec=5
+User=root
+
+[Install]
+WantedBy=multi-user.target

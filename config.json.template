@@ -1,0 +1,114 @@
+{
+  "log": {
+    "access": "/var/log/xray/access.log",
+    "error": "/var/log/xray/error.log",
+    "loglevel": "warning"
+  },
+  "api": {
+    "services": [
+      "HandlerService",
+      "LoggerService",
+      "StatsService"
+    ],
+    "tag": "api"
+  },
+  "stats": {},
+  "policy": {
+    "levels": {
+      "0": {
+        "statsUserDownlink": true,
+        "statsUserOnline": true,
+        "statsUserUplink": true
+      }
+    },
+    "system": {
+      "statsInboundDownlink": true,
+      "statsInboundUplink": true
+    }
+  },
+  "inbounds": [
+    {
+      "tag": "api",
+      "port": 2000,
+      "protocol": "dokodemo-door",
+      "settings": {
+        "address": "127.0.0.1"
+      },
+      "listen": "127.0.0.1"
+    },
+    {
+      "tag": "inbound-netsimon",
+      "port": 443,
+      "protocol": "vless",
+      "settings": {
+        "clients": [],
+        "decryption": "none"
+      },
+      "streamSettings": {
+        "network": "xhttp",
+        "security": "tls",
+        "xhttpSettings": {
+          "path": "/",
+          "host": "",
+          "mode": "",
+          "noSSEHeader": false,
+          "scMaxBufferedPosts": 30,
+          "scMaxEachPostBytes": "1000000",
+          "scStreamUpServerSecs": "10-30",
+          "xPaddingBytes": "50-200"
+        },
+        "tlsSettings": {
+          "certificates": [
+            {
+              "certificateFile": "/etc/xray-manager/ssl/fullchain.pem",
+              "keyFile": "/etc/xray-manager/ssl/privkey.pem"
+            }
+          ],
+          "alpn": [
+            "h2",
+            "http/1.1"
+          ]
+        }
+      }
+    }
+  ],
+  "outbounds": [
+    {
+      "protocol": "freedom",
+      "settings": {
+        "domainStrategy": "UseIP"
+      },
+      "tag": "direct"
+    },
+    {
+      "protocol": "blackhole",
+      "tag": "block"
+    }
+  ],
+  "routing": {
+    "domainStrategy": "AsIs",
+    "rules": [
+      {
+        "inboundTag": [
+          "api"
+        ],
+        "outboundTag": "api",
+        "type": "field"
+      },
+      {
+        "ip": [
+          "geoip:private"
+        ],
+        "outboundTag": "block",
+        "type": "field"
+      },
+      {
+        "protocol": [
+          "bittorrent"
+        ],
+        "outboundTag": "block",
+        "type": "field"
+      }
+    ]
+  }
+}

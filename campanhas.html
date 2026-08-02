@@ -1,0 +1,619 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<script>(function(){try{if(localStorage.getItem("ns_theme")==="light")document.documentElement.setAttribute("data-theme","light");}catch(e){}})();</script>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NetSimon 9.0 — Campanhas</title>
+<link rel="stylesheet" href="/css/painel.css?v=19">
+<style>
+  .ta-mono { width:100%; background:var(--bg); border:1px solid var(--border); border-radius:8px; color:var(--text); padding:8px 10px; font-size:12px; font-family:inherit; }
+  .badge-status { padding:2px 8px; border-radius:12px; font-size:11px; font-weight:600; white-space:nowrap; }
+  .badge-rascunho    { background:#3a3a4a; color:#cfcfe0; }
+  .badge-agendada    { background:#3a2e4d; color:#c79fe8; }
+  .badge-enviando    { background:#1e4d3a; color:#7fe8b0; }
+  .badge-pausada     { background:#4d3f1e; color:#e8c97f; }
+  .badge-concluida   { background:#1e3a4d; color:#7fc7e8; }
+  .check-ok  { color:#7fe8b0; }
+  .check-no  { color:#666; }
+  .media-preview { display:flex; align-items:center; gap:8px; font-size:12px; color:var(--muted); }
+  .campaign-row td { vertical-align:middle; }
+
+  /* ── Correção anti-corte por zoom (reforço local, caso painel.css do servidor
+     ainda esteja desatualizado) ─────────────────────────────────────────── */
+  .main { min-width: 0; min-height: 0; }
+  .content { min-height: 0; min-width: 0; overflow-x: hidden; }
+  .sidebar-nav { min-height: 0; }
+  .table-wrap { max-height: max(240px, calc(100vh - 260px)); }
+  .modal { max-height: 100%; overflow-y: auto; }
+  .modal-overlay { padding: 24px; overflow-y: auto; }
+  /* Causa raiz real do bug: sem isso, o flexbox deixava os .card-panel
+     encolherem abaixo do tamanho do conteúdo (por terem overflow:hidden),
+     cortando campos do formulário em vez de deixar a página rolar. */
+  .card-panel { flex-shrink: 0; }
+</style>
+</head>
+<body>
+<div class="layout">
+  <aside class="sidebar" id="sidebar">
+    <a href="/dashboard.html" class="sidebar-logo" title="Início">
+      <div class="logo-icon"><img src="/img/logo.png" alt="NetSimon"></div>
+    </a>
+
+    <nav class="sidebar-nav">
+      <a href="/dashboard.html" class="nav-item" data-page="dashboard">
+        <span class="nav-icon nav-icon-img"><img src="/img/icon-home.png" alt="Início"></span><span>Início</span>
+      </a>
+      <a href="/usuarios.html" class="nav-item" data-page="usuarios">
+        <span class="nav-icon">👤</span><span>Usuários</span>
+      </a>
+      <a href="/todos-usuarios.html" class="nav-item" data-page="todos-usuarios">
+        <span class="nav-icon">🗂️</span><span>Todos os Usuários</span>
+      </a>
+      <a href="/dispositivos.html" class="nav-item" data-page="dispositivos">
+        <span class="nav-icon">📵</span><span>Dispositivos</span>
+      </a>
+      <a href="/xray.html" class="nav-item admin-only" data-page="xray">
+        <span class="nav-icon">🛰️</span><span>Xray</span>
+      </a>
+      <a href="/revendedores.html" class="nav-item reseller-manage-only" data-page="revendedores">
+        <span class="nav-icon">🤝</span><span>Revendedores</span>
+      </a>
+      <a href="/servidores.html" class="nav-item admin-only" data-page="servidores">
+        <span class="nav-icon">🖧</span><span>Servidores</span>
+      </a>
+      <a href="/diagnostico.html" class="nav-item" data-page="diagnostico">
+        <span class="nav-icon">🧠</span><span>Manutenção</span>
+      </a>
+      <a href="/whatsapp.html" class="nav-item" data-page="whatsapp">
+        <span class="nav-icon nav-icon-img"><img src="/img/icon-whatsapp.png" alt="WhatsApp"></span><span>WhatsApp</span>
+      </a>
+      <a href="/campanhas.html" class="nav-item" data-page="campanhas">
+        <span class="nav-icon">📣</span><span>Campanhas</span>
+      </a>
+      <a href="/app.html" class="nav-item" data-page="app">
+        <span class="nav-icon">📱</span><span>Aplicativo</span>
+      </a>
+      <a href="/backup.html" class="nav-item admin-only" data-page="backup">
+        <span class="nav-icon">💾</span><span>Backup</span>
+      </a>
+      <a href="/bot.html" class="nav-item admin-only" data-page="bot">
+        <span class="nav-icon">🤖</span><span>Bot Telegram</span>
+      </a>
+      <a href="/logs.html" class="nav-item admin-only" data-page="logs">
+        <span class="nav-icon">📋</span><span>Logs</span>
+      </a>
+      <a href="#" class="nav-item admin-only" data-page="terminal" onclick="openTerminal(); return false;">
+        <span class="nav-icon">🖥️</span><span>Terminal</span>
+      </a>
+      <a href="/websocket-security.html" class="nav-item admin-only" data-page="wssecurity">
+        <span class="nav-icon">🔐</span><span>WS Security</span>
+      </a>
+      <a href="/ia.html" class="nav-item admin-only" data-page="ia">
+        <span class="nav-icon">✨</span><span>IA</span>
+      </a>
+      <a href="/configuracoes.html" class="nav-item admin-only" data-page="config">
+        <span class="nav-icon">⚙️</span><span>Configurações</span>
+      </a>
+    </nav>
+
+    <div class="sidebar-footer">
+      <div class="user-info">
+        <span class="user-avatar">👑</span>
+        <div>
+          <div class="user-name" id="sidebar-username">–</div>
+          <div class="user-role" id="sidebar-role">–</div>
+        </div>
+      </div>
+      <button class="btn-theme-toggle" id="btn-theme-toggle" title="Alternar tema" onclick="toggleTheme()">☀️</button>
+      <button class="btn-logout" id="btn-logout" title="Sair">⏻</button>
+    </div>
+  </aside>
+
+  <main class="main">
+    <header class="topbar">
+      <div class="topbar-left">
+        <button class="burger" id="burger">☰</button>
+        <h1 class="page-title">Campanhas de Reengajamento</h1>
+      </div>
+    </header>
+
+    <div class="content">
+
+      <div class="card-panel">
+        <div class="card-panel-header"><span>🔁 Disparo Automático (por dias de inatividade)</span></div>
+        <div class="form-grid" style="padding:16px 18px">
+          <div class="text-sm text-muted" style="margin:0">
+            Esse é o modo "no piloto automático": o bot verifica sozinho, a cada poucas horas, quem passou de X dias
+            sem falar e manda a mensagem configurada. Pra ter controle total sobre EXATAMENTE quais contatos recebem
+            (por exemplo, só quem falou em 05/2022), use uma <strong>campanha manual</strong> mais abaixo em vez
+            deste modo automático.
+          </div>
+          <div class="form-field">
+            <label><input type="checkbox" id="auto-enabled" style="width:auto; margin-right:6px"> Ativar disparo automático por dias de inatividade</label>
+          </div>
+          <div class="form-row">
+            <div class="form-field">
+              <label>Considerar inativo após (dias)</label>
+              <input type="number" id="auto-inactive-days" min="1" value="60">
+            </div>
+            <div class="form-field">
+              <label>Intervalo mínimo entre reenvios (dias)</label>
+              <input type="number" id="auto-resend-days" min="1" value="30">
+            </div>
+            <div class="form-field">
+              <label>Máx. tentativas (0 = sem limite)</label>
+              <input type="number" id="auto-max-attempts" min="0" value="3">
+            </div>
+            <div class="form-field">
+              <label>Pausa entre envios (minutos)</label>
+              <input type="number" id="auto-delay-min" min="1" value="1">
+            </div>
+          </div>
+          <div class="form-field">
+            <label>Mensagem automática (use {login}, {dias})</label>
+            <textarea id="auto-msg" rows="3" class="ta-mono"></textarea>
+          </div>
+          <button class="btn btn-primary btn-sm" onclick="saveAutoConfig()">💾 Salvar disparo automático</button>
+        </div>
+      </div>
+
+      <div class="card-panel">
+        <div class="card-panel-header"><span>🆕 Nova Campanha Manual</span></div>
+        <div class="form-grid" style="padding:16px 18px">
+          <div class="text-sm text-muted" style="margin:0">
+            Escolha exatamente o período da última interação (ex: mês 05 / ano 2022) e, opcionalmente, um filtro pelo
+            nome salvo do contato no WhatsApp (ex: "rev" pra pegar revendedores). Pré-visualize antes de disparar —
+            assim você sabe exatamente quantos e quais contatos vão receber, sem misturar públicos de períodos
+            diferentes na mesma campanha.
+          </div>
+
+          <div class="form-field">
+            <label>Nome da campanha</label>
+            <input type="text" id="camp-name" placeholder="ex: Reengajamento — Maio 2022">
+          </div>
+
+          <div class="form-row">
+            <div class="form-field">
+              <label>Mês da última interação (opcional)</label>
+              <select id="camp-month">
+                <option value="">Qualquer mês</option>
+                <option value="1">Janeiro</option><option value="2">Fevereiro</option><option value="3">Março</option>
+                <option value="4">Abril</option><option value="5">Maio</option><option value="6">Junho</option>
+                <option value="7">Julho</option><option value="8">Agosto</option><option value="9">Setembro</option>
+                <option value="10">Outubro</option><option value="11">Novembro</option><option value="12">Dezembro</option>
+              </select>
+            </div>
+            <div class="form-field">
+              <label>Ano da última interação (opcional)</label>
+              <input type="number" id="camp-year" placeholder="ex: 2022" min="2015" max="2100">
+            </div>
+            <div class="form-field">
+              <label>Nome do contato contém (opcional)</label>
+              <input type="text" id="camp-name-filter" placeholder="ex: rev">
+            </div>
+          </div>
+
+          <div>
+            <button class="btn btn-ghost btn-sm" onclick="previewCampaign()">🔍 Pré-visualizar contatos</button>
+            <span id="preview-result" class="text-sm text-muted" style="margin-left:10px"></span>
+          </div>
+          <div id="preview-list" class="table-wrap" style="display:none; max-height:220px; overflow:auto;">
+            <table>
+              <thead><tr><th>Telefone</th><th>Nome</th><th>Última interação</th></tr></thead>
+              <tbody id="preview-tbody"></tbody>
+            </table>
+          </div>
+
+          <div class="form-field">
+            <label>Mensagem da campanha</label>
+            <textarea id="camp-message" rows="4" class="ta-mono" placeholder="Digite a mensagem que será enviada pra esse grupo de contatos..."></textarea>
+          </div>
+
+          <div class="form-row">
+            <div class="form-field">
+              <label>Anexo (opcional)</label>
+              <select id="camp-media-type" onchange="toggleCampMediaPicker()">
+                <option value="">Sem anexo</option>
+                <option value="image">🖼️ Imagem</option>
+                <option value="video">🎬 Vídeo</option>
+                <option value="document">📄 Arquivo (ex: APK)</option>
+              </select>
+              <div id="camp-media-picker" style="display:none; align-items:center; gap:8px; margin-top:8px">
+                <button type="button" class="btn btn-ghost btn-sm" onclick="document.getElementById('camp-media-file').click()">📎 Escolher arquivo</button>
+                <span id="camp-media-filename" class="text-sm text-muted">Nenhum arquivo selecionado</span>
+                <input type="file" id="camp-media-file" style="display:none" onchange="_updateCampMediaFilename()">
+              </div>
+            </div>
+            <div class="form-field">
+              <label>Pausa entre cada envio (segundos)</label>
+              <input type="number" id="camp-delay" min="5" value="30">
+            </div>
+            <div class="form-field">
+              <label>Limite de envios por dia (0 = sem limite)</label>
+              <input type="number" id="camp-max-per-day" min="0" value="0">
+            </div>
+          </div>
+
+          <div class="form-field" style="border:1px solid var(--border); border-radius:8px; padding:12px 14px; background:var(--surface2)">
+            <label style="margin-bottom:2px">⏰ Janela de envio (reengajamento seguro)</label>
+            <div class="text-sm text-muted" style="margin:0 0 8px">
+              Ajuda a não levar o número a ser marcado como spam pelo WhatsApp e a soar mais natural
+              (como se fosse uma pessoa mandando, não um disparo em massa).
+            </div>
+            <label style="font-weight:400; display:block; margin-bottom:6px">
+              <input type="checkbox" id="camp-hourly-interval" style="width:auto; margin-right:6px">
+              Espaçar envios em pelo menos 1h entre cada mensagem
+            </label>
+            <label style="font-weight:400; display:block">
+              <input type="checkbox" id="camp-business-window" style="width:auto; margin-right:6px">
+              Enviar somente em dias úteis (seg–sex), das 08:00 às 22:00
+            </label>
+          </div>
+
+          <div class="form-row">
+            <div class="form-field">
+              <label>Agendar início pra (opcional — deixe em branco pra decidir na hora)</label>
+              <input type="datetime-local" id="camp-schedule-at">
+            </div>
+            <div class="form-field">
+              <label>Testar envio num número antes de disparar (opcional)</label>
+              <div style="display:flex; gap:6px">
+                <input type="text" id="camp-test-phone" placeholder="ex: 5511999999999">
+                <button class="btn btn-ghost btn-sm" style="white-space:nowrap" onclick="testSendCampaign()">🧪 Enviar teste</button>
+              </div>
+            </div>
+          </div>
+
+          <div>
+            <button class="btn btn-ghost btn-sm" onclick="clearCampaignForm()">🧹 Limpar</button>
+            <button class="btn btn-primary btn-sm" onclick="createCampaign('rascunho')">💾 Salvar como rascunho</button>
+            <button class="btn btn-primary btn-sm" onclick="createCampaign('agora')">🚀 Salvar e Iniciar Envio</button>
+            <button class="btn btn-primary btn-sm" onclick="createCampaign('agendar')">🗓️ Salvar e Agendar</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="card-panel">
+        <div class="card-panel-header">
+          <span>📋 Campanhas</span>
+          <button class="btn btn-ghost btn-sm" onclick="loadCampaigns()">🔄 Atualizar</button>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Nome</th><th>Status</th><th>Filtro</th><th>Total</th>
+                <th>Enviados</th><th>Entregues</th><th>Visualizados</th><th>Falhas</th><th>Ações</th>
+              </tr>
+            </thead>
+            <tbody id="campaigns-tbody">
+              <tr><td colspan="9" style="text-align:center; padding:32px; color:var(--muted);">Carregando…</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </div>
+  </main>
+</div>
+
+<div class="modal-overlay" id="modal-report">
+  <div class="modal" style="max-width:720px">
+    <div class="modal-header">
+      <span class="modal-title" id="report-title">📊 Relatório da Campanha</span>
+      <button class="modal-close" onclick="closeModal('modal-report')">×</button>
+    </div>
+    <div id="report-summary" class="text-sm text-muted" style="padding:0 4px 12px"></div>
+    <div class="table-wrap" style="max-height:420px; overflow:auto;">
+      <table>
+        <thead>
+          <tr><th>Contato</th><th>Nome</th><th>Enviado</th><th>Entregue</th><th>Visualizado</th><th>Horário do envio</th></tr>
+        </thead>
+        <tbody id="report-tbody"></tbody>
+      </table>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" id="report-export-btn" onclick="exportCampaignCSV()">⬇️ Exportar CSV</button>
+      <button class="btn btn-ghost" onclick="closeModal('modal-report')">Fechar</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+<script src="/js/painel.js"></script>
+<script>
+let _campaignsCache = [];
+let _lastPreviewFilters = null;
+
+async function loadAutoConfig() {
+  const cfg = await api("/whatsapp/config");
+  if (!cfg) return;
+  document.getElementById("auto-enabled").checked = !!cfg.bot_reengage_enabled;
+  document.getElementById("auto-inactive-days").value = cfg.bot_reengage_inactive_days ?? 60;
+  document.getElementById("auto-resend-days").value = cfg.bot_reengage_resend_interval_days ?? 30;
+  document.getElementById("auto-max-attempts").value = cfg.bot_reengage_max_attempts ?? 3;
+  // Backend guarda em segundos; tela mostra em minutos (mínimo 1min).
+  document.getElementById("auto-delay-min").value = Math.max(1, Math.round((cfg.bot_reengage_send_delay_seconds ?? 60) / 60));
+  document.getElementById("auto-msg").value = cfg.bot_reengage_message || "";
+}
+
+async function saveAutoConfig() {
+  const r = await api("/whatsapp/config", "PUT", {
+    bot_reengage_enabled: document.getElementById("auto-enabled").checked,
+    bot_reengage_inactive_days: parseInt(document.getElementById("auto-inactive-days").value) || 60,
+    bot_reengage_resend_interval_days: parseInt(document.getElementById("auto-resend-days").value) || 30,
+    bot_reengage_max_attempts: parseInt(document.getElementById("auto-max-attempts").value) || 0,
+    bot_reengage_send_delay_seconds: Math.max(60, (parseInt(document.getElementById("auto-delay-min").value) || 1) * 60),
+    bot_reengage_message: document.getElementById("auto-msg").value
+  });
+  if (r) toast("Disparo automático configurado!");
+}
+
+function _campaignFilters() {
+  return {
+    month: document.getElementById("camp-month").value || null,
+    year: document.getElementById("camp-year").value || null,
+    name_contains: document.getElementById("camp-name-filter").value.trim()
+  };
+}
+
+async function previewCampaign() {
+  const filters = _campaignFilters();
+  _lastPreviewFilters = filters;
+  const r = await api("/whatsapp/campaigns/preview", "POST", filters);
+  if (!r) return;
+  document.getElementById("preview-result").textContent = `${r.total} contato(s) encontrado(s) com esse filtro.`;
+  const tbody = document.getElementById("preview-tbody");
+  const list = document.getElementById("preview-list");
+  if (!r.total) { list.style.display = "none"; return; }
+  list.style.display = "block";
+  tbody.innerHTML = r.contatos.map(c => `
+    <tr><td>${c.phone}</td><td>${c.name || "–"}</td><td>${c.last_seen_txt}</td></tr>
+  `).join("");
+}
+
+function clearCampaignForm() {
+  document.getElementById("camp-name").value = "";
+  document.getElementById("camp-month").value = "";
+  document.getElementById("camp-year").value = "";
+  document.getElementById("camp-name-filter").value = "";
+  document.getElementById("camp-message").value = "";
+  document.getElementById("camp-media-type").value = "";
+  document.getElementById("camp-media-picker").style.display = "none";
+  document.getElementById("camp-media-file").value = "";
+  document.getElementById("camp-media-filename").textContent = "Nenhum arquivo selecionado";
+  document.getElementById("camp-delay").value = 30;
+  document.getElementById("camp-max-per-day").value = 0;
+  document.getElementById("camp-hourly-interval").checked = false;
+  document.getElementById("camp-business-window").checked = false;
+  document.getElementById("camp-schedule-at").value = "";
+  document.getElementById("camp-test-phone").value = "";
+  document.getElementById("preview-result").textContent = "";
+  document.getElementById("preview-list").style.display = "none";
+}
+
+// Item: mostra/esconde o seletor de arquivo (botão + nome do anexo)
+// conforme o tipo escolhido, e ajusta o "accept" pra facilitar achar o
+// arquivo certo no seletor do sistema operacional.
+function toggleCampMediaPicker() {
+  const type = document.getElementById("camp-media-type").value;
+  const picker = document.getElementById("camp-media-picker");
+  const fileInput = document.getElementById("camp-media-file");
+  if (!type) {
+    picker.style.display = "none";
+    fileInput.value = "";
+    document.getElementById("camp-media-filename").textContent = "Nenhum arquivo selecionado";
+    return;
+  }
+  picker.style.display = "flex";
+  fileInput.accept = type === "image" ? "image/*" : type === "video" ? "video/*" : "";
+}
+
+function _updateCampMediaFilename() {
+  const file = document.getElementById("camp-media-file").files[0];
+  document.getElementById("camp-media-filename").textContent = file ? file.name : "Nenhum arquivo selecionado";
+}
+
+async function testSendCampaign() {
+  const phone = document.getElementById("camp-test-phone").value.trim();
+  const message = document.getElementById("camp-message").value.trim();
+  const mediaType = document.getElementById("camp-media-type").value;
+  const mediaFile = document.getElementById("camp-media-file").files[0];
+
+  if (!phone) { toast("Informe o telefone pra receber o teste", true); return; }
+  if (!message && !mediaType) { toast("Escreva a mensagem (ou anexe uma mídia) antes de testar", true); return; }
+
+  const fd = new FormData();
+  fd.append("phone", phone);
+  fd.append("message", message);
+  if (mediaType) fd.append("mediaType", mediaType);
+  if (mediaFile) fd.append("file", mediaFile);
+
+  try {
+    const r = await fetch("/api/whatsapp/campaigns/test-send", {
+      method: "POST", headers: { "X-Token": getToken() }, body: fd
+    });
+    const data = await r.json();
+    if (!r.ok) { toast(data.error || "Erro ao enviar teste", true); return; }
+    toast(`Teste enviado pra ${phone}!`);
+  } catch (e) {
+    toast("Erro ao enviar teste", true);
+  }
+}
+
+async function createCampaign(mode) {
+  const name = document.getElementById("camp-name").value.trim();
+  const message = document.getElementById("camp-message").value.trim();
+  if (!name)    { toast("Dê um nome pra campanha", true); return; }
+  if (!message) { toast("Escreva a mensagem da campanha", true); return; }
+
+  let scheduledAt = "";
+  if (mode === "agendar") {
+    scheduledAt = document.getElementById("camp-schedule-at").value;
+    if (!scheduledAt) { toast("Escolha a data/hora do agendamento", true); return; }
+  }
+
+  const filters = _campaignFilters();
+  const payload = {
+    name, message,
+    month: filters.month, year: filters.year, name_contains: filters.name_contains,
+    delay_seconds: parseInt(document.getElementById("camp-delay").value) || 30,
+    max_per_day: parseInt(document.getElementById("camp-max-per-day").value) || 0,
+    hourly_interval: document.getElementById("camp-hourly-interval").checked,
+    business_window: document.getElementById("camp-business-window").checked,
+    scheduled_at: scheduledAt || null
+  };
+
+  const created = await api("/whatsapp/campaigns", "POST", payload);
+  if (!created) return;
+
+  // Item: anexo é enviado à parte (multipart), depois de criar a
+  // campanha — assim o texto/filtro fica salvo mesmo se o upload falhar.
+  const mediaType = document.getElementById("camp-media-type").value;
+  const mediaFile = document.getElementById("camp-media-file").files[0];
+  if (mediaType && mediaFile) {
+    const fd = new FormData();
+    fd.append("mediaType", mediaType);
+    fd.append("file", mediaFile);
+    try {
+      const r = await fetch(`/api/whatsapp/campaigns/${created.id}/media`, {
+        method: "POST", headers: { "X-Token": getToken() }, body: fd
+      });
+      const data = await r.json();
+      if (!r.ok) toast(`Campanha criada, mas o anexo falhou: ${data.error || ""}`, true);
+    } catch (e) {
+      toast("Campanha criada, mas o anexo falhou ao enviar", true);
+    }
+  }
+
+  if (mode === "agora") {
+    const s = await api(`/whatsapp/campaigns/${created.id}/start`, "POST");
+    if (s) toast(`Campanha "${name}" iniciada! Enviando aos poucos, respeitando a pausa configurada.`);
+  } else if (mode === "agendar") {
+    toast(`Campanha "${name}" agendada pra ${new Date(scheduledAt).toLocaleString("pt-BR")}.`);
+  } else {
+    toast(`Campanha "${name}" salva como rascunho.`);
+  }
+
+  clearCampaignForm();
+  loadCampaigns();
+}
+
+function statusBadge(status) {
+  const labels = { rascunho: "Rascunho", agendada: "Agendada", enviando: "Enviando", pausada: "Pausada", concluida: "Concluída" };
+  return `<span class="badge-status badge-${status}">${labels[status] || status}</span>`;
+}
+
+function filterText(filters) {
+  const parts = [];
+  if (filters.month || filters.year) {
+    const meses = ["", "Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
+    parts.push(`${filters.month ? meses[filters.month] : "qualquer mês"}/${filters.year || "qualquer ano"}`);
+  } else {
+    parts.push("qualquer período");
+  }
+  if (filters.name_contains) parts.push(`nome contém "${filters.name_contains}"`);
+  return parts.join(" · ");
+}
+
+async function loadCampaigns() {
+  const list = await api("/whatsapp/campaigns");
+  if (!list) return;
+  _campaignsCache = list;
+  const tbody = document.getElementById("campaigns-tbody");
+  if (!list.length) {
+    tbody.innerHTML = `<tr><td colspan="9" style="text-align:center; padding:32px; color:var(--muted);">Nenhuma campanha criada ainda.</td></tr>`;
+    return;
+  }
+  tbody.innerHTML = list.map(c => {
+    const s = c.summary;
+    const canStart  = c.status === "rascunho" || c.status === "pausada" || c.status === "agendada";
+    const canPause  = c.status === "enviando" || c.status === "agendada";
+    const pauseIcon = c.status === "agendada" ? "❌" : "⏸";
+    const pauseTitle = c.status === "agendada" ? "Cancelar agendamento" : "Pausar";
+    const canDelete = c.status !== "enviando";
+    const scheduleTxt = c.status === "agendada" && c.scheduled_at
+      ? `<br><span class="text-sm text-muted">🗓️ ${new Date(c.scheduled_at * 1000).toLocaleString("pt-BR")}</span>` : "";
+    return `
+      <tr class="campaign-row">
+        <td>${c.name}</td>
+        <td>${statusBadge(c.status)}${scheduleTxt}</td>
+        <td class="text-sm text-muted">${filterText(c.filters)}</td>
+        <td>${s.total}</td>
+        <td>${s.enviado}</td>
+        <td>${s.entregue}</td>
+        <td>${s.visualizado}</td>
+        <td>${s.falhou}</td>
+        <td style="white-space:nowrap">
+          ${canStart ? `<button class="btn btn-primary btn-sm" onclick="startCampaign('${c.id}')" title="Iniciar agora">▶</button>` : ""}
+          ${canPause ? `<button class="btn btn-ghost btn-sm" onclick="pauseCampaign('${c.id}')" title="${pauseTitle}">${pauseIcon}</button>` : ""}
+          <button class="btn btn-ghost btn-sm" onclick="openReport('${c.id}')" title="Relatório">📊</button>
+          <button class="btn btn-ghost btn-sm" onclick="duplicateCampaign('${c.id}')" title="Reativar no futuro">🔁</button>
+          ${canDelete ? `<button class="btn btn-danger btn-sm" onclick="deleteCampaign('${c.id}')" title="Excluir">🗑</button>` : ""}
+        </td>
+      </tr>
+    `;
+  }).join("");
+}
+
+async function startCampaign(id) {
+  const r = await api(`/whatsapp/campaigns/${id}/start`, "POST");
+  if (r) { toast("Envio iniciado/retomado!"); loadCampaigns(); }
+}
+
+async function pauseCampaign(id) {
+  const r = await api(`/whatsapp/campaigns/${id}/pause`, "POST");
+  if (r) { toast("Campanha pausada — clique em ▶ pra retomar de onde parou."); loadCampaigns(); }
+}
+
+async function duplicateCampaign(id) {
+  const r = await api(`/whatsapp/campaigns/${id}/duplicate`, "POST");
+  if (r) { toast(`Campanha "${r.name}" recriada como rascunho com os contatos de hoje.`); loadCampaigns(); }
+}
+
+async function deleteCampaign(id) {
+  if (!confirm("Excluir esta campanha? Essa ação não pode ser desfeita.")) return;
+  const r = await api(`/whatsapp/campaigns/${id}`, "DELETE");
+  if (r) { toast("Campanha excluída."); loadCampaigns(); }
+}
+
+async function openReport(id) {
+  const c = await api(`/whatsapp/campaigns/${id}`);
+  if (!c) return;
+  document.getElementById("report-title").textContent = `📊 Relatório — ${c.name}`;
+  const s = c.summary;
+  document.getElementById("report-summary").innerHTML =
+    `Total: <strong>${s.total}</strong> · Pendentes: <strong>${s.pendente}</strong> · ` +
+    `Enviados: <strong>${s.enviado}</strong> · Entregues: <strong>${s.entregue}</strong> · ` +
+    `Visualizados: <strong>${s.visualizado}</strong> · Falhas: <strong>${s.falhou}</strong>`;
+
+  const tbody = document.getElementById("report-tbody");
+  tbody.innerHTML = c.targets.map(t => {
+    const r = (c.results || {})[t.phone];
+    const status = r ? r.status : "pendente";
+    const entregue = ["entregue", "visualizado"].includes(status);
+    const visualizado = status === "visualizado";
+    const enviado = ["enviado", "entregue", "visualizado", "falhou"].includes(status);
+    const horario = r && r.sent_at ? new Date(r.sent_at * 1000).toLocaleString("pt-BR") : "–";
+    const enviadoTxt = status === "falhou" ? `<span style="color:#e87f7f">falhou</span>` : (enviado ? `<span class="check-ok">✓✓</span>` : `<span class="check-no">–</span>`);
+    return `
+      <tr>
+        <td>${t.phone}</td>
+        <td>${t.name || "–"}</td>
+        <td>${enviadoTxt}</td>
+        <td>${entregue ? '<span class="check-ok">✓✓</span>' : '<span class="check-no">–</span>'}</td>
+        <td>${visualizado ? '<span class="check-ok">👁️ sim</span>' : '<span class="check-no">não</span>'}</td>
+        <td class="text-sm text-muted">${horario}</td>
+      </tr>
+    `;
+  }).join("");
+  openModal("modal-report");
+}
+
+initPage();
+loadAutoConfig();
+loadCampaigns();
+</script>
+</body>
+</html>

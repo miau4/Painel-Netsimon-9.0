@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<script>(function(){try{if(localStorage.getItem("ns_theme")==="light")document.documentElement.setAttribute("data-theme","light");}catch(e){}})();</script>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NetSimon 9.0 — IA</title>
+<link rel="stylesheet" href="/css/painel.css?v=19">
+</head>
+<body>
+<div class="layout">
+  <aside class="sidebar" id="sidebar">
+    <a href="/dashboard.html" class="sidebar-logo" title="Início">
+      <div class="logo-icon"><img src="/img/logo.png" alt="NetSimon"></div>
+    </a>
+
+    <nav class="sidebar-nav">
+      <a href="/dashboard.html" class="nav-item" data-page="dashboard">
+        <span class="nav-icon nav-icon-img"><img src="/img/icon-home.png" alt="Início"></span><span>Início</span>
+      </a>
+      <a href="/usuarios.html" class="nav-item" data-page="usuarios">
+        <span class="nav-icon">👤</span><span>Usuários</span>
+      </a>
+      <a href="/todos-usuarios.html" class="nav-item" data-page="todos-usuarios">
+        <span class="nav-icon">🗂️</span><span>Todos os Usuários</span>
+      </a>
+      <a href="/dispositivos.html" class="nav-item" data-page="dispositivos">
+        <span class="nav-icon">📵</span><span>Dispositivos</span>
+      </a>
+      <a href="/xray.html" class="nav-item admin-only" data-page="xray">
+        <span class="nav-icon">🛰️</span><span>Xray</span>
+      </a>
+      <a href="/revendedores.html" class="nav-item reseller-manage-only" data-page="revendedores">
+        <span class="nav-icon">🤝</span><span>Revendedores</span>
+      </a>
+      <a href="/servidores.html" class="nav-item admin-only" data-page="servidores">
+        <span class="nav-icon">🖧</span><span>Servidores</span>
+      </a>
+      <a href="/diagnostico.html" class="nav-item" data-page="diagnostico">
+        <span class="nav-icon">🧠</span><span>Manutenção</span>
+      </a>
+      <a href="/whatsapp.html" class="nav-item" data-page="whatsapp">
+        <span class="nav-icon nav-icon-img"><img src="/img/icon-whatsapp.png" alt="WhatsApp"></span><span>WhatsApp</span>
+      </a>
+      <a href="/campanhas.html" class="nav-item" data-page="campanhas">
+        <span class="nav-icon">📣</span><span>Campanhas</span>
+      </a>
+      <a href="/app.html" class="nav-item" data-page="app">
+        <span class="nav-icon">📱</span><span>Aplicativo</span>
+      </a>
+      <a href="/backup.html" class="nav-item admin-only" data-page="backup">
+        <span class="nav-icon">💾</span><span>Backup</span>
+      </a>
+      <a href="/bot.html" class="nav-item admin-only" data-page="bot">
+        <span class="nav-icon">🤖</span><span>Bot Telegram</span>
+      </a>
+      <a href="/logs.html" class="nav-item admin-only" data-page="logs">
+        <span class="nav-icon">📋</span><span>Logs</span>
+      </a>
+      <a href="#" class="nav-item admin-only" data-page="terminal" onclick="openTerminal(); return false;">
+        <span class="nav-icon">🖥️</span><span>Terminal</span>
+      </a>
+      <a href="/websocket-security.html" class="nav-item admin-only" data-page="wssecurity">
+        <span class="nav-icon">🔐</span><span>WS Security</span>
+      </a>
+      <a href="/ia.html" class="nav-item active admin-only" data-page="ia">
+        <span class="nav-icon">✨</span><span>IA</span>
+      </a>
+      <a href="/configuracoes.html" class="nav-item admin-only" data-page="config">
+        <span class="nav-icon">⚙️</span><span>Configurações</span>
+      </a>
+    </nav>
+
+    <div class="sidebar-footer">
+      <div class="user-info">
+        <span class="user-avatar">👑</span>
+        <div>
+          <div class="user-name" id="sidebar-username">–</div>
+          <div class="user-role" id="sidebar-role">–</div>
+        </div>
+      </div>
+      <button class="btn-theme-toggle" id="btn-theme-toggle" title="Alternar tema" onclick="toggleTheme()">☀️</button>
+      <button class="btn-logout" id="btn-logout" title="Sair">⏻</button>
+    </div>
+  </aside>
+
+  <main class="main">
+    <header class="topbar">
+      <div class="topbar-left">
+        <button class="burger" id="burger">☰</button>
+        <h1 class="page-title">✨ IA (Gemini)</h1>
+      </div>
+    </header>
+
+    <div class="content">
+
+      <div class="card-panel">
+        <div class="card-panel-header">
+          <span>🤖 Assistente de IA — Atendimento WhatsApp</span>
+          <label class="switch" title="Ativar/desativar a IA agora">
+            <input type="checkbox" id="ai-enabled" onchange="toggleAiEnabledInstant()">
+            <span class="switch-slider"></span>
+          </label>
+        </div>
+        <div style="padding:18px" class="form-grid">
+          <div class="text-sm text-muted">
+            A IA cuida do <strong>atendimento empático</strong> — entende o que o cliente quer, mesmo quando ele não usa a
+            palavra exata, e o orienta a mandar o comando certo (ex: cliente diz "posso ver se funciona antes de pagar?" →
+            a IA orienta a mandar "teste"). Quem de fato <strong>executa</strong> qualquer ação (criar teste, gerar cobrança,
+            renovar) continua sendo só o mecanismo automático por palavra-chave — <strong>a IA nunca finaliza nada sozinha</strong>,
+            mesmo que o cliente insista ou mande comprovante. O interruptor acima liga/desliga na hora, sem precisar salvar.
+          </div>
+          <div class="form-row">
+            <div class="form-field">
+              <label>Chave de API da Gemini</label>
+              <input type="password" id="ai-api-key" placeholder="cole aqui a chave gerada no Google AI Studio">
+            </div>
+            <div class="form-field">
+              <label>Modelo</label>
+              <select id="ai-model">
+                <option value="gemini-3-flash-preview">gemini-3-flash-preview (recomendado, tem nível grátis)</option>
+                <option value="gemini-3.1-flash-lite">gemini-3.1-flash-lite (mais rápido/mais barato)</option>
+                <option value="gemini-3.5-flash">gemini-3.5-flash (mais capaz)</option>
+                <option value="gemini-3.1-pro-preview">gemini-3.1-pro-preview (mais caro/lento, sem nível grátis)</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-field">
+            <label>Personalidade / instruções (opcional — some às regras de segurança fixas)</label>
+            <textarea id="ai-prompt" rows="4" placeholder="Ex: Você é o atendente da NetSimon, sempre chame o cliente de forma simpática, evite respostas muito longas..."></textarea>
+          </div>
+          <div class="form-row">
+            <div class="form-field">
+              <label>Mensagens de histórico mantidas por conversa</label>
+              <input type="number" id="ai-max-turns" min="0" max="30" value="8">
+            </div>
+            <div class="form-field" style="justify-content:flex-end">
+              <label style="display:flex; align-items:center; gap:8px; cursor:pointer">
+                <input type="checkbox" id="ai-log-conversations" style="width:auto">
+                Registrar todas as conversas (inclusive as respondidas pela máquina de estados) para revisão futura
+              </label>
+            </div>
+          </div>
+          <div style="display:flex; gap:10px; flex-wrap:wrap">
+            <button class="btn btn-primary" onclick="saveAiAssistant()">💾 Salvar</button>
+            <button class="btn" onclick="testAiAssistant()">🧪 Testar Conexão</button>
+            <a class="btn" href="#" onclick="downloadAiTranscripts(); return false;">⬇️ Baixar histórico de conversas</a>
+          </div>
+          <div id="ai-test-result" class="text-sm" style="display:none"></div>
+        </div>
+      </div>
+
+      <div class="card-panel" style="margin-top:20px">
+        <div class="card-panel-header"><span>🧭 Como a IA decide o que fazer</span></div>
+        <div style="padding:18px" class="form-grid">
+          <div class="text-sm text-muted">
+            Toda mensagem passa primeiro pelo mecanismo automático (rápido, gratuito, sem IA). Só quando <strong>nenhuma</strong>
+            palavra-chave bate é que a IA entra na conversa — e mesmo aí, ela é instruída a reconhecer a intenção e devolver
+            o cliente pro mecanismo automático em vez de tentar resolver sozinha:
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>O cliente quer</th><th>A IA orienta a mandar</th><th>Exemplo de frase indireta</th></tr></thead>
+              <tbody>
+                <tr><td>Experimentar antes de assinar</td><td class="text-mono">teste</td><td class="text-muted text-sm">"posso ver se funciona antes de pagar?"</td></tr>
+                <tr><td>Saber até quando o acesso vale</td><td class="text-mono">vencimento</td><td class="text-muted text-sm">"até quando ainda tenho acesso?"</td></tr>
+                <tr><td>Link do aplicativo</td><td class="text-mono">apk / aplicativo</td><td class="text-muted text-sm">"como uso no meu celular?"</td></tr>
+                <tr><td>Assinar um plano novo</td><td class="text-mono">mensal</td><td class="text-muted text-sm">"quero começar a usar, como assino?"</td></tr>
+                <tr><td>Renovar (já é cliente)</td><td class="text-mono">renovar</td><td class="text-muted text-sm">"já sou cliente, preciso pagar de novo"</td></tr>
+                <tr><td>Resolver um problema técnico</td><td class="text-mono">suporte</td><td class="text-muted text-sm">só depois de conversar/diagnosticar (perguntar o que houve, pedir print, sugerir testar wifi × dados móveis) — "não está conectando" já entra direto na conversa com a IA, não pula pro atendente</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="text-sm text-muted">
+            Essa tabela reflete exatamente as palavras-chave que o mecanismo automático reconhece hoje — se você mudar os
+            comandos do bot no futuro, esse mapa deve ser atualizado no código (<span class="text-mono">_ai_system_prompt</span>
+            em <span class="text-mono">painel_api.py</span>) pra IA continuar orientando certo.
+          </div>
+        </div>
+      </div>
+
+      <div class="card-panel" style="margin-top:20px">
+        <div class="card-panel-header"><span>📘 Tutorial — Como conseguir uma chave de API gratuita</span></div>
+        <div style="padding:18px" class="form-grid">
+          <div class="text-sm text-muted">
+            <p>1. Acesse <span class="text-mono">aistudio.google.com/apikey</span> e faça login com uma conta Google (não precisa de cartão de crédito).</p>
+            <p class="gap-top">2. Clique em "Create API key" e escolha (ou crie) um projeto do Google Cloud pra vincular a chave.</p>
+            <p class="gap-top">3. Copie a chave gerada (começa com "AIza...") e cole no campo "Chave de API da Gemini" acima.</p>
+            <p class="gap-top">4. Clique em "Testar Conexão" pra confirmar que está tudo funcionando antes de ativar de vez.</p>
+            <p class="gap-top">O plano gratuito tem limite de requisições por minuto/dia (o Google ajusta esses números com frequência —
+            confira o valor atual direto no seu painel do AI Studio). Se o limite for atingido, o bot volta automaticamente pro
+            menu padrão/atendimento humano em vez de travar o cliente sem resposta.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="card-panel" style="margin-top:20px">
+        <div class="card-panel-header"><span>🚀 Próximos passos (planejado)</span></div>
+        <div style="padding:18px" class="text-sm text-muted">
+          <p>A ideia é evoluir esse assistente pra além do atendimento no WhatsApp: um modo de comando por voz/texto livre,
+          direto aqui no painel, onde dá pra pedir coisas como <em>"renove o cadastro do João por mais 30 dias"</em>,
+          <em>"me dá um resumo do diagnóstico geral do painel"</em> ou <em>"configure uma nova campanha de reengajamento
+          para quem não fala com a gente há 60 dias"</em> — e a IA executa a ação de verdade, chamando as mesmas rotas
+          que os botões do painel já usam hoje.</p>
+          <p class="gap-top">A base já está pronta pra isso (o histórico de conversa e o registro de interações que essa página
+          controla), mas a parte de "a IA executar ações no painel" ainda não foi implementada — fica pra uma próxima etapa.</p>
+        </div>
+      </div>
+
+    </div>
+  </main>
+</div>
+
+<div class="toast" id="toast"></div>
+<script src="/js/painel.js"></script>
+<script>
+async function loadAiAssistant() {
+  const ai = await api("/ai-assistant/config");
+  if (!ai) return;
+  document.getElementById("ai-enabled").checked = !!ai.enabled;
+  document.getElementById("ai-model").value = ai.model || "gemini-3-flash-preview";
+  document.getElementById("ai-prompt").value = ai.system_prompt || "";
+  document.getElementById("ai-max-turns").value = ai.max_history_turns ?? 8;
+  document.getElementById("ai-log-conversations").checked = ai.log_conversations !== false;
+  const keyField = document.getElementById("ai-api-key");
+  keyField.value = "";
+  keyField.placeholder = ai.has_key ? `chave salva: ${ai.api_key}` : "cole aqui a chave gerada no Google AI Studio";
+}
+
+async function toggleAiEnabledInstant() {
+  const checkbox = document.getElementById("ai-enabled");
+  const enabled = checkbox.checked;
+  checkbox.disabled = true;
+  const r = await api("/ai-assistant/config", "PUT", { enabled });
+  checkbox.disabled = false;
+  if (!r) { checkbox.checked = !enabled; return; } // reverte se falhou
+  toast(enabled ? "IA ativada — já está valendo pro atendimento" : "IA desativada — bot volta a usar só o menu padrão");
+}
+
+async function saveAiAssistant() {
+  const payload = {
+    enabled: document.getElementById("ai-enabled").checked,
+    model: document.getElementById("ai-model").value,
+    system_prompt: document.getElementById("ai-prompt").value,
+    max_history_turns: parseInt(document.getElementById("ai-max-turns").value) || 0,
+    log_conversations: document.getElementById("ai-log-conversations").checked,
+  };
+  const key = document.getElementById("ai-api-key").value.trim();
+  if (key) payload.api_key = key;
+
+  const r = await api("/ai-assistant/config", "PUT", payload);
+  if (!r) return;
+  toast("Configuração da IA salva!");
+  loadAiAssistant();
+}
+
+async function testAiAssistant() {
+  const box = document.getElementById("ai-test-result");
+  box.style.display = "block";
+  box.style.color = "";
+  box.className = "text-sm text-muted";
+  box.textContent = "Testando conexão com a Gemini...";
+
+  const key = document.getElementById("ai-api-key").value.trim();
+  const payload = { model: document.getElementById("ai-model").value };
+  if (key) payload.api_key = key;
+
+  const r = await api("/ai-assistant/test", "POST", payload);
+  if (r && r.ok) {
+    box.className = "text-sm";
+    box.style.color = "var(--success, #22c55e)";
+    box.textContent = `✅ Funcionando! Resposta da Gemini: "${r.reply}"`;
+  } else {
+    // api() já mostrou um toast com o motivo do erro — aqui só limpa a caixa
+    box.style.display = "none";
+  }
+}
+
+async function downloadAiTranscripts() {
+  try {
+    const res = await fetch("/api/ai-assistant/transcripts/download", {
+      headers: { "X-Token": getToken() }
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      toast(err.error || "Nenhuma conversa registrada ainda", true);
+      return;
+    }
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "conversas_whatsapp.jsonl";
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  } catch (e) {
+    toast("Falha ao baixar o histórico", true);
+  }
+}
+
+initPage();
+loadAiAssistant();
+</script>
+</body>
+</html>
