@@ -454,6 +454,15 @@ body {
 .switch input:checked + .switch-slider::before { transform: translate(20px, -50%); background: var(--success); }
 .switch input:disabled + .switch-slider { opacity: .5; cursor: not-allowed; }
 
+.user-avatar-thumb {
+  width: 28px; height: 28px; border-radius: 50%; object-fit: cover;
+  flex-shrink: 0; border: 1px solid var(--border, rgba(255,255,255,.12));
+}
+.user-avatar-thumb-empty {
+  display: inline-flex; align-items: center; justify-content: center;
+  background: rgba(255,255,255,.06); font-size: 14px; opacity: .6;
+}
+
 .svc-dot {
   width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0;
   background: var(--muted);
