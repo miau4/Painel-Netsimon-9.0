@@ -215,6 +215,31 @@
   </div>
 </div>
 
+<!-- Modal: Foto -->
+<div class="modal-overlay" id="modal-photo">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title">📸 Foto do Usuário</span>
+      <button class="modal-close" onclick="closeModal('modal-photo')">×</button>
+    </div>
+    <div class="form-grid">
+      <div class="text-sm text-muted">Usuário: <strong class="text-mono" id="ph-login"></strong></div>
+      <div style="display:flex; justify-content:center; padding:12px 0;">
+        <img id="ph-preview" src="" alt="" style="display:none; max-width:180px; max-height:180px; border-radius:12px; object-fit:cover;">
+      </div>
+      <div class="form-field">
+        <label>Selecionar imagem (JPG, PNG ou WEBP, máx 2 MB)</label>
+        <input type="file" id="ph-file" accept="image/jpeg,image/png,image/webp">
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-danger btn-sm" id="ph-remove-btn" style="display:none; margin-right:auto;" onclick="removePhoto()">🗑 Remover Foto</button>
+      <button class="btn btn-ghost" onclick="closeModal('modal-photo')">Cancelar</button>
+      <button class="btn btn-primary" onclick="confirmUploadPhoto()">Salvar Foto</button>
+    </div>
+  </div>
+</div>
+
 <!-- Modal: Acesso do Usuário (unificado — usado ao criar teste, criar mensal e no botão "Link") -->
 <div class="modal-overlay" id="modal-access">
   <div class="modal" style="max-width:580px">
@@ -376,10 +401,13 @@ function renderUsers() {
     const exp = fmtDate(u.expira);
     const checked = _selected.has(u.login) ? "checked" : "";
     const criador = u.criado_por || "admin";
+    const avatarThumb = u.foto_url
+      ? `<img src="${u.foto_url}?v=${Date.now()}" class="user-avatar-thumb" alt="" onclick="openPhotoModal('${u.login}', '${u.foto_url}')" style="cursor:pointer">`
+      : `<span class="user-avatar-thumb user-avatar-thumb-empty" onclick="openPhotoModal('${u.login}', null)" style="cursor:pointer" title="Adicionar foto">👤</span>`;
 
     return `<tr>
       <td><input type="checkbox" class="chk-user" data-login="${u.login}" ${checked} onchange="toggleSelectOne(this)"></td>
-      <td><strong class="text-mono">${u.login}</strong></td>
+      <td style="display:flex; align-items:center; gap:8px;">${avatarThumb}<strong class="text-mono">${u.login}</strong></td>
       <td class="text-sm text-muted">${criador}</td>
       <td>${statusBadge}</td>
       <td class="text-sm ${u.expired ? 'text-muted' : ''}">${exp}</td>
@@ -391,6 +419,7 @@ function renderUsers() {
       </td>
       <td style="display:flex; gap:6px; flex-wrap:wrap">
         <button class="btn btn-ghost btn-sm" onclick="showDetails('${u.login}')">⚙️ Opções</button>
+        <button class="btn btn-ghost btn-sm" onclick="openPhotoModal('${u.login}', ${u.foto_url ? `'${u.foto_url}'` : 'null'})" title="Foto do usuário">📸</button>
         ${u.blocked
           ? `<button class="btn btn-ghost btn-sm admin-only" onclick="unblockUser('${u.login}')">🔓</button>`
           : ""}
@@ -639,6 +668,66 @@ async function saveAccessModal() {
 // Filtros em tempo real
 document.getElementById("filter-search").addEventListener("input", renderUsers);
 document.getElementById("filter-status").addEventListener("change", renderUsers);
+
+// ── Foto do usuário — portado do NetSimon 7.0 ──────────────────────
+let _photoTarget = null;
+
+function openPhotoModal(login, fotoUrl) {
+  _photoTarget = login;
+  document.getElementById("ph-login").textContent = login;
+  const preview = document.getElementById("ph-preview");
+  if (fotoUrl) {
+    preview.src = fotoUrl + "?v=" + Date.now();
+    preview.style.display = "block";
+  } else {
+    preview.style.display = "none";
+  }
+  document.getElementById("ph-file").value = "";
+  document.getElementById("ph-remove-btn").style.display = fotoUrl ? "inline-flex" : "none";
+  openModal("modal-photo");
+}
+
+document.getElementById("ph-file").addEventListener("change", (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  const preview = document.getElementById("ph-preview");
+  preview.src = URL.createObjectURL(file);
+  preview.style.display = "block";
+});
+
+async function confirmUploadPhoto() {
+  const fileInput = document.getElementById("ph-file");
+  if (!fileInput.files.length) { toast("Selecione uma imagem", true); return; }
+  const file = fileInput.files[0];
+  if (file.size > 2 * 1024 * 1024) { toast("Imagem muito grande (máx 2 MB)", true); return; }
+
+  const formData = new FormData();
+  formData.append("foto", file);
+
+  try {
+    const resp = await fetch(`/api/users/${_photoTarget}/photo`, {
+      method: "POST",
+      headers: { "X-Token": getToken() },
+      body: formData
+    });
+    const data = await resp.json();
+    if (!resp.ok) { toast(data.error || "Erro ao enviar foto", true); return; }
+    toast("Foto salva!");
+    closeModal("modal-photo");
+    loadUsers();
+  } catch (e) {
+    toast("Erro de conexão ao enviar foto", true);
+  }
+}
+
+async function removePhoto() {
+  if (!confirm(`Remover a foto de "${_photoTarget}"?`)) return;
+  const r = await api(`/users/${_photoTarget}/photo`, "DELETE");
+  if (!r) return;
+  toast("Foto removida.");
+  closeModal("modal-photo");
+  loadUsers();
+}
 
 // Pré-aplica o filtro se veio de um clique nos cards do Dashboard
 const _urlParams = new URLSearchParams(window.location.search);
