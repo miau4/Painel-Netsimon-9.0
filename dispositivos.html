@@ -289,10 +289,10 @@ function setLimiterMasterUI(running) {
 async function toggleLimiterMaster() {
   const action = _limiterMasterOn ? "stop" : "start";
   const btn = document.getElementById("btn-limiter-master");
-  if (btn) btn.disabled = true;
+  if (btn) { btn.disabled = true; btn.textContent = "⏳ Processando…"; }
   const r = await api(`/services/limiter/${action}`, "POST");
   if (btn) btn.disabled = false;
-  if (!r) return;
+  if (!r) { if (btn) setLimiterMasterUI(_limiterMasterOn); return; }
   _limiterMasterOn = r.running;
   setLimiterMasterUI(r.running);
   toast(`Sistema de limite de dispositivos ${r.running ? "ativado" : "desativado"}!`);
