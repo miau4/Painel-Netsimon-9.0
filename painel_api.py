@@ -919,20 +919,29 @@ def get_system_stats():
     }
 
 def service_status(name):
+    # Item: BUG CORRIGIDO — "pgrep -f X" rodado via subprocess(shell=True)
+    # SEMPRE encontrava pelo menos 1 processo, mesmo com o serviço
+    # parado: o processo intermediário "/bin/sh -c 'pgrep -f X'" tem a
+    # string X na própria linha de comando, então o pgrep batia nele
+    # mesmo (self-match). Resultado: o status sempre voltava "rodando",
+    # e o botão liga/desliga do painel nunca ficava vermelho de verdade.
+    # Fix: o truque clássico "[x]yz" — o padrão de busca vira uma regex
+    # que não bate na própria string literal "[x]yz" da invocação, só
+    # no processo real "xyz" que a gente quer encontrar.
     if name == "xray":
         _, rc = run_cmd("systemctl is-active xray")
         return rc == 0
     if name == "proxy":
-        out, _ = run_cmd("pgrep -f proxy.py")
+        out, _ = run_cmd("pgrep -f '[p]roxy.py'")
         return bool(out)
     if name == "limiter":
-        out, _ = run_cmd("pgrep -f limit.sh")
+        out, _ = run_cmd("pgrep -f '[l]imit.sh'")
         return bool(out)
     if name == "slowdns":
-        out, _ = run_cmd("pgrep -f dnstt-server")
+        out, _ = run_cmd("pgrep -f '[d]nstt-server'")
         return bool(out)
     if name == "checkuser":
-        out, _ = run_cmd("pgrep -f checkuser.py")
+        out, _ = run_cmd("pgrep -f '[c]heckuser.py'")
         return bool(out)
     if name == "badvpn":
         _, rc = run_cmd("systemctl is-active badvpn")
@@ -2246,17 +2255,23 @@ def service_action(name, action):
         ("xray",    "restart"): "systemctl restart xray",
         ("xray",    "stop"):    "systemctl stop xray",
         ("xray",    "start"):   "systemctl start xray",
-        ("proxy",   "restart"): "pkill -f proxy.py; screen -dmS ws80 python3 /etc/painel/proxy.py 80; screen -dmS ws8080 python3 /etc/painel/proxy.py 8080",
-        ("proxy",   "stop"):    "pkill -f proxy.py",
+        ("proxy",   "restart"): "pkill -f '[p]roxy.py'; screen -dmS ws80 python3 /etc/painel/proxy.py 80; screen -dmS ws8080 python3 /etc/painel/proxy.py 8080",
+        ("proxy",   "stop"):    "pkill -f '[p]roxy.py'",
         ("proxy",   "start"):   "screen -dmS ws80 python3 /etc/painel/proxy.py 80; screen -dmS ws8080 python3 /etc/painel/proxy.py 8080",
         # "stop" do limiter precisa ser mais agressivo que um pkill simples:
         # o processo roda dentro de uma sessão "screen" (limitador), e só
         # matar o processo interno às vezes deixava a sessão viva/zumbi,
         # que o "pgrep -f limit.sh" do status ainda enxergava como "rodando"
         # — por isso o ícone nunca ficava vermelho depois de parar.
-        ("limiter", "start"):   "pkill -f limit.sh 2>/dev/null; screen -S limitador -X quit 2>/dev/null; sleep 0.3; screen -dmS limitador bash /etc/painel/limit.sh",
-        ("limiter", "stop"):    "pkill -f limit.sh 2>/dev/null; screen -S limitador -X quit 2>/dev/null; sleep 0.3; pkill -9 -f limit.sh 2>/dev/null",
-        ("limiter", "restart"): "pkill -9 -f limit.sh 2>/dev/null; screen -S limitador -X quit 2>/dev/null; sleep 0.3; screen -dmS limitador bash /etc/painel/limit.sh",
+        # Item: BUG CORRIGIDO — "pkill -f limit.sh" dentro de um comando
+        # composto ("A; B; C") batia na própria linha de comando do shell
+        # que executa a sequência inteira (ela contém a string "limit.sh"
+        # várias vezes), matando o shell no meio e abortando os passos
+        # seguintes (o screen quit/restart às vezes nem rodava). Por isso
+        # o "[l]imit.sh" também aqui, não só no status.
+        ("limiter", "start"):   "pkill -f '[l]imit.sh' 2>/dev/null; screen -S limitador -X quit 2>/dev/null; sleep 0.3; screen -dmS limitador bash /etc/painel/limit.sh",
+        ("limiter", "stop"):    "pkill -f '[l]imit.sh' 2>/dev/null; screen -S limitador -X quit 2>/dev/null; sleep 0.3; pkill -9 -f '[l]imit.sh' 2>/dev/null",
+        ("limiter", "restart"): "pkill -9 -f '[l]imit.sh' 2>/dev/null; screen -S limitador -X quit 2>/dev/null; sleep 0.3; screen -dmS limitador bash /etc/painel/limit.sh",
         ("badvpn",  "restart"): "systemctl restart badvpn",
         ("badvpn",  "stop"):    "systemctl stop badvpn",
         ("badvpn",  "start"):   "systemctl start badvpn",
@@ -2284,8 +2299,8 @@ def service_action(name, action):
         if not expect_running and name in ("limiter", "proxy"):
             # reforça o encerramento pra sessões "screen" que demoram a cair
             kill_cmd = {
-                "limiter": "pkill -9 -f limit.sh 2>/dev/null; screen -S limitador -X quit 2>/dev/null",
-                "proxy":   "pkill -9 -f proxy.py 2>/dev/null",
+                "limiter": "pkill -9 -f '[l]imit.sh' 2>/dev/null; screen -S limitador -X quit 2>/dev/null",
+                "proxy":   "pkill -9 -f '[p]roxy.py' 2>/dev/null",
             }[name]
             run_cmd(kill_cmd)
         running = service_status(name)
@@ -2733,6 +2748,11 @@ DEFAULT_BOT_PRINT_RECEIVED_MSG = (
 DEFAULT_BOT_HANDOFF_MSG = (
     "Não consegui entender automaticamente. 🙋 Já estou chamando um atendente humano pra te ajudar, só um instante!"
 )
+DEFAULT_BOT_PRINT_MAX_ATTEMPTS_MSG = (
+    "Sem problemas! Já vou chamar um atendente humano pra te ajudar por aqui mesmo, sem precisar do print. 🙋"
+)
+DEFAULT_BOT_RESET_MSG = "Atendimento reiniciado! 🔄"
+
 DEFAULT_BOT_ADMIN_NOTIFY_PAYMENT = (
     "💰 Novo pagamento confirmado automaticamente pelo bot!\n"
     "📱 Cliente: {phone}\n"
@@ -2811,7 +2831,9 @@ def get_owner_wa_config(owner):
         "bot_print_request_message": DEFAULT_BOT_PRINT_REQUEST_MSG,
         "bot_print_waiting_message": DEFAULT_BOT_PRINT_WAITING_MSG,
         "bot_print_received_message": DEFAULT_BOT_PRINT_RECEIVED_MSG,
+        "bot_print_max_attempts_message": DEFAULT_BOT_PRINT_MAX_ATTEMPTS_MSG,
         "bot_handoff_message": DEFAULT_BOT_HANDOFF_MSG,
+        "bot_reset_message": DEFAULT_BOT_RESET_MSG,
         "bot_admin_notify_payment": DEFAULT_BOT_ADMIN_NOTIFY_PAYMENT,
         "bot_admin_notify_handoff": DEFAULT_BOT_ADMIN_NOTIFY_HANDOFF,
         # Item: reengajamento de contatos inativos (rastreia quem não fala
@@ -2868,6 +2890,7 @@ def whatsapp_save_config():
         "bot_apk_message", "bot_plan_days", "bot_plan_price",
         "bot_plan_message", "bot_plan_waiting_message", "bot_payment_received_message",
         "bot_print_request_message", "bot_print_waiting_message", "bot_print_received_message",
+        "bot_print_max_attempts_message", "bot_reset_message",
         "bot_handoff_message", "bot_admin_notify_payment", "bot_admin_notify_handoff",
         "bot_reengage_enabled", "bot_reengage_inactive_days", "bot_reengage_resend_interval_days",
         "bot_reengage_max_attempts", "bot_reengage_send_delay_seconds", "bot_reengage_message",
@@ -3425,6 +3448,21 @@ def whatsapp_inbound():
     key = f"{owner}|{phone}"
     contact = state.get(key, {})
 
+    # ── comando de RESET — reinicia o atendimento do zero pra esse
+    # contato. Funciona em QUALQUER estado (mesmo já transferido pra
+    # humano ou preso numa etapa como "aguardando_print"), por isso é
+    # checado antes de qualquer outra lógica. Não precisa de intenção
+    # de IA nem de etapa aberta — é um escape manual explícito.
+    if not has_image and text.strip().strip("#") in ("reset", "reiniciar", "reiniciar atendimento"):
+        state[key] = {}
+        _save_bot_state(state)
+        device_log_write(f"BOT WHATSAPP: atendimento reiniciado (reset manual) — {phone} (painel {owner})")
+        reset_msg = wa["bot_reset_message"] + "\n\n" + wa["bot_menu_message"]
+        _wa_send(owner, phone, reset_msg)
+        if ai_cfg.get("log_conversations"):
+            _log_ai_transcript(owner, phone, "bot", reset_msg)
+        return jsonify({"ok": True, "reply": reset_msg})
+
     # ── contato em atendimento humano: as AÇÕES automáticas do bot (menu,
     # comandos, criação de acesso etc.) ficam desligadas até um atendente
     # reassumir manualmente (WhatsApp › Atendimentos aguardando atendente),
@@ -3586,8 +3624,29 @@ def whatsapp_inbound():
             _log_bot_media(owner, phone, "print_tela_inicial", image_path)
             confirm_msg = wa["bot_print_received_message"] + "\n\n" + wa["bot_handoff_message"]
             return _handoff("cliente enviou o print solicitado — segue pra conferência humana", msg=confirm_msg)
+        # Saída de emergência: se o cliente mandar um comando claro (ex:
+        # "vencimento", "teste", "menu") em vez do print, não fica preso
+        # repetindo o pedido pra sempre — libera a etapa e deixa o fluxo
+        # normal de comandos (mais abaixo) tratar a mensagem dele.
+        elif not any(p in text for p in ("teste", "vencimento", "apk", "aplicativo", "mensal", "renov", "pix", "menu", "suporte")):
+            # Item: limite de repetição — o bot já pediu o print 1x ao
+            # entrar nessa etapa (bot_print_request_message). Se o
+            # cliente não manda a imagem, o bot insiste MAIS UMA vez
+            # (contada aqui). Na 3ª mensagem sem print, em vez de
+            # repetir a mesma pergunta pra sempre, encaminha pra um
+            # atendente humano — mas continua respondendo o cliente
+            # normalmente (a IA, se ligada, assume a companhia — ver o
+            # bloco "contato em atendimento humano" no topo da função).
+            tentativas = contact.get("print_tentativas", 1)
+            if tentativas >= 2:
+                return _handoff(
+                    "cliente não enviou o print após 2 solicitações — encaminhado automaticamente",
+                    msg=wa["bot_print_max_attempts_message"],
+                )
+            return _reply(wa["bot_print_waiting_message"], print_tentativas=tentativas + 1)
         else:
-            return _reply(wa["bot_print_waiting_message"])
+            contact["step"] = None
+            step = None
 
     # ── ETAPA: aguardando o cliente informar o nome exato do usuário
     # (consulta de vencimento) — pedir explicitamente em vez de adivinhar
@@ -3684,7 +3743,7 @@ def whatsapp_inbound():
         p in text for p in ("suporte", "ajuda", "não funciona", "nao funciona", "erro", "problema", "não conect", "nao conect")
     )
     if is_support_intent and (not ai_cfg.get("enabled") or "suporte" in text):
-        return _reply(wa["bot_print_request_message"], step="aguardando_print")
+        return _reply(wa["bot_print_request_message"], step="aguardando_print", print_tentativas=1)
 
     # ── mensagem não reconhecida (ou imagem fora de qualquer fluxo) ───
     # Item: anti-loop — antes de chamar um atendente, garante que o
@@ -3715,17 +3774,17 @@ def whatsapp_inbound():
     if time.time() - last_menu > 12 * 3600:
         return _reply(wa["bot_menu_message"], last_menu_sent=time.time())
 
-    # Mesmo aqui — cliente não reconhecido, ou IA indisponível/falhou —
-    # NUNCA transfere pra humano sem antes ter o print da tela inicial.
-    # Se o cliente já mandou uma imagem fora de um fluxo esperado, essa
-    # imagem já serve como o print e a transferência acontece confirmando
-    # o recebimento; se foi texto, primeiro pede o print e só transfere
-    # de verdade quando ele chegar (na etapa "aguardando_print" acima).
+    # Mensagem genérica sem nenhuma intenção clara (tipo "oi", "calma",
+    # "ok") NÃO deve forçar o pedido de print — isso é reservado só pra
+    # quando há intenção real de suporte (já tratado mais acima) ou
+    # quando o cliente manda uma imagem "do nada" (sinal forte de que é
+    # o print, mesmo sem ter sido pedido). Pra qualquer outra coisa, só
+    # relembra as palavras-chave, sem escalar sozinho pro atendimento.
     if has_image:
         _log_bot_media(owner, phone, "print_tela_inicial", image_path)
         confirm_msg = wa["bot_print_received_message"] + "\n\n" + wa["bot_handoff_message"]
         return _handoff("imagem recebida fora de um fluxo esperado (tratada como print de suporte), mesmo após o menu", msg=confirm_msg)
-    return _reply(wa["bot_print_request_message"], step="aguardando_print")
+    return _reply(wa["bot_menu_message"])
 
 @app.route("/api/whatsapp/human-activity", methods=["POST"])
 def whatsapp_human_activity():
