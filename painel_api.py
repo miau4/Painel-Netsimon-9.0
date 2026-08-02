@@ -2266,21 +2266,42 @@ def service_action(name, action):
         return jsonify({"error": "ação inválida"}), 400
     _, rc = run_cmd(cmd)
 
-    # Confere o resultado de verdade antes de responder, em vez de assumir
-    # que o comando funcionou — o frontend usa isso pra já mostrar o
-    # estado certo sem esperar o próximo ciclo de 10s do dashboard.
-    time.sleep(0.5)
+    # Confere o resultado de VERDADE antes de responder, em vez de assumir
+    # que o comando funcionou depois de uma única espera fixa — um serviço
+    # rodando dentro de "screen" (limiter/proxy) pode levar um instante a
+    # mais pra realmente cair, e uma checagem única e rápida demais fazia
+    # o painel responder "running" desatualizado: o botão/bolinha ficavam
+    # sem nenhuma confirmação visual de que o clique fez efeito. Agora
+    # insiste por até ~2.5s, reforçando o kill se for esperado "parado" e
+    # ainda estiver detectando o processo — só devolve quando o estado
+    # bate com o esperado ou o tempo de tentativas acaba (nesse caso,
+    # devolve o estado real mesmo assim, nunca um valor otimista chutado).
+    expect_running = action in ("start", "restart")
     running = service_status(name)
+    tries = 0
+    while running != expect_running and tries < 5:
+        time.sleep(0.5)
+        if not expect_running and name in ("limiter", "proxy"):
+            # reforça o encerramento pra sessões "screen" que demoram a cair
+            kill_cmd = {
+                "limiter": "pkill -9 -f limit.sh 2>/dev/null; screen -S limitador -X quit 2>/dev/null",
+                "proxy":   "pkill -9 -f proxy.py 2>/dev/null",
+            }[name]
+            run_cmd(kill_cmd)
+        running = service_status(name)
+        tries += 1
 
     s = request.ns_session
     try:
         with open(LOG_LIMIT, "a") as f:
             f.write(f"{datetime.datetime.now().strftime('%d/%m/%Y %H:%M:%S')} - ADMIN ({s['user']}): serviço \"{name}\" -> {action} "
-                     f"[{'rodando' if running else 'parado'}]\n")
+                     f"[{'rodando' if running else 'parado'}]"
+                     f"{' (nao confirmou o estado esperado apos varias tentativas)' if running != expect_running else ''}\n")
     except Exception:
         pass
 
     return jsonify({"ok": True, "running": running})
+
 
 # ══════════════════════════════════════════════════════════════════
 #  LOGS
